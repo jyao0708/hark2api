@@ -780,6 +780,18 @@ def admin_accounts(_=Depends(auth)):
     return {"accounts": client.list_accounts(), "stats": client.stats()}
 
 
+@app.get("/admin/accounts/export")
+def admin_export_accounts(ids: str | None = None, _=Depends(auth)):
+    selected = {item.strip() for item in (ids or "").split(",") if item.strip()}
+    return JSONResponse(
+        content=client.export_accounts(selected or None),
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Disposition": 'attachment; filename="hark2api-accounts.json"',
+        },
+    )
+
+
 @app.post("/admin/accounts")
 def admin_add_account(req: AccountCreateRequest, _=Depends(auth)):
     try:

@@ -40,6 +40,9 @@ def main():
             def __init__(self):
                 self.calls = []
 
+            def export_accounts(self, account_ids=None):
+                return {"version": 1, "accounts": []}
+
             def run(self, prompt, **kwargs):
                 self.calls.append((prompt, kwargs))
                 if kwargs.get("input_attachment") and not kwargs.get("require_attachment"):
@@ -71,6 +74,8 @@ def main():
                 assert client.get("/").status_code == 200
                 admin_page = client.get("/admin")
                 assert "HARK" in admin_page.text and "设置" in admin_page.text and "jyao0708/hark2api" in admin_page.text
+                exported = client.get("/admin/accounts/export")
+                assert exported.status_code == 200 and exported.json() == {"version": 1, "accounts": []}
                 assert client.get("/favicon.ico").status_code == 200
                 qr = client.get("/docs/QQ群.png")
                 assert qr.status_code == 200 and qr.headers["content-type"] == "image/png"

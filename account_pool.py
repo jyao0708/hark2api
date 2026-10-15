@@ -299,6 +299,28 @@ class HarkAccountPool:
             "persistent": False,
         }] if records else []
 
+    def export_accounts(self, account_ids: set[str] | None = None) -> dict[str, Any]:
+        records = self.store.list_internal() or self._records()
+        exported: list[dict[str, Any]] = []
+        for account in records:
+            account_id = str(account.get("id") or "")
+            if account_ids is not None and account_id not in account_ids:
+                continue
+            cookie_header = _cookie_header(account)
+            if not cookie_header and account.get("cookie_file"):
+                try:
+                    cookie_header = Path(str(account["cookie_file"])).read_text(encoding="utf-8").strip()
+                except OSError:
+                    cookie_header = ""
+            if not cookie_header:
+                continue
+            exported.append({
+                "label": str(account.get("label") or ""),
+                "cookie_header": cookie_header,
+                "enabled": bool(account.get("enabled", True)),
+            })
+        return {"version": 1, "accounts": exported}
+
     def stats(self) -> dict[str, Any]:
         stats = self.store.stats()
         if not self.store.has_persisted_accounts():

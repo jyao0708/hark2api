@@ -26,6 +26,9 @@ def main():
 
         cfg = SimpleNamespace(accounts_file=account_path, cookie_header="", cookie_file="")
         pool = HarkAccountPool(cfg)
+        exported = pool.export_accounts({first["id"]})
+        assert exported["version"] == 1
+        assert exported["accounts"] == [{"label": "first", "cookie_header": "a=1; b=2", "enabled": True}]
 
         class FailingClient:
             def run(self, *args, **kwargs):
