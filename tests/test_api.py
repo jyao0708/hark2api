@@ -73,6 +73,9 @@ def main():
                     json={"prompt": "draw", "async": True, "response_format": "b64_json"},
                 )
                 assert response.status_code == 202
+                assert response.json()["progress"] is None
+                assert response.json()["progress_known"] is False
+                assert response.json()["phase"] == "排队中"
                 task = wait_for_task(client, response.json()["task_id"])
                 assert task["status"] == "completed"
                 assert base64.b64decode(task["data"][0]["b64_json"]) == output.read_bytes()

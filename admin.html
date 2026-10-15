@@ -1654,6 +1654,183 @@
       .community-panel img { width: min(100%, 230px); }
     }
   </style>
+  <style id="workbench-library-pass">
+    .workbench-layout {
+      display: grid;
+      grid-template-columns: minmax(300px, .78fr) minmax(0, 1.22fr);
+      gap: 16px;
+      align-items: stretch;
+    }
+    .workbench-form, .workbench-preview { min-height: 560px; padding: 26px; }
+    .workbench-form { display: flex; flex-direction: column; }
+    .workbench-form h2 { margin-bottom: 22px; }
+    .workbench-form textarea { min-height: 184px; }
+    .workbench-form .button[type="submit"] { margin-top: auto; }
+    .reference-picker {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+      min-height: 78px;
+      border: 1px dashed var(--line-strong);
+      padding: 10px;
+      background: var(--surface-tint);
+      cursor: pointer;
+    }
+    .reference-picker:hover { border-color: var(--accent); }
+    .reference-picker input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+    .reference-picker.has-preview { grid-template-columns: 78px minmax(0, 1fr); }
+    .reference-thumb {
+      display: none;
+      width: 78px;
+      height: 78px;
+      object-fit: cover;
+      background: var(--surface-muted);
+    }
+    .reference-thumb:not([hidden]) { display: block; }
+    .reference-copy { min-width: 0; color: var(--muted); }
+    .reference-copy strong { display: block; color: var(--ink); }
+    .reference-copy span { display: block; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+    .workbench-preview {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      border-top-color: var(--good);
+    }
+    .preview-head { display: flex; align-items: center; justify-content: flex-end; gap: 12px; min-height: 24px; }
+    .result-status {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+      justify-content: center;
+      color: var(--muted);
+    }
+    .result-status.empty-state { align-items: center; text-align: center; }
+    .result-image {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      align-items: center;
+      justify-content: center;
+      margin: 20px 0 14px;
+      overflow: hidden;
+      background: var(--surface-muted);
+    }
+    .result-image img {
+      display: block;
+      width: 100%;
+      max-height: 430px;
+      object-fit: contain;
+    }
+    .result-copy { margin: 0; color: var(--muted); text-align: center; }
+    .progress-indicator {
+      width: min(220px, 70%);
+      height: 3px;
+      margin-bottom: 14px;
+      overflow: hidden;
+      background: var(--line);
+    }
+    .progress-indicator::after {
+      display: block;
+      width: 42%;
+      height: 100%;
+      background: var(--accent);
+      content: "";
+      animation: workbench-progress 1.1s ease-in-out infinite alternate;
+    }
+    @keyframes workbench-progress {
+      from { transform: translateX(-110%); }
+      to { transform: translateX(240%); }
+    }
+    .result-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .result-actions[hidden] { display: none; }
+    .result-actions .button { flex: 1; }
+    .workbench-quota { margin-top: 12px; color: var(--muted); font-size: 12px; }
+    .workbench-empty {
+      display: grid;
+      min-height: 360px;
+      place-items: center;
+      padding: 32px;
+      border: 1px dashed var(--line-strong);
+      background: var(--surface);
+      text-align: center;
+    }
+    .workbench-empty[hidden], .workbench-layout[hidden] { display: none; }
+    .workbench-empty h2 { margin-bottom: 8px; }
+    .workbench-empty p { margin-bottom: 18px; color: var(--muted); }
+
+    .media-library-panel { padding: 20px; }
+    .media-grid {
+      column-width: 220px;
+      column-count: auto;
+      column-gap: 16px;
+      display: block;
+    }
+    .media-item {
+      display: inline-block;
+      width: 100%;
+      margin: 0 0 16px;
+      break-inside: avoid;
+      vertical-align: top;
+    }
+    .media-preview { height: auto; aspect-ratio: auto; }
+    .media-preview img { display: block; width: 100%; height: auto; object-fit: contain; }
+    .file-preview { display: grid; min-height: 180px; place-items: center; padding: 20px; }
+
+    .settings-surface {
+      overflow: hidden;
+      border-top: 3px solid var(--ink);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .settings-row {
+      display: grid;
+      grid-template-columns: minmax(180px, .7fr) minmax(0, 1.3fr);
+      gap: 30px;
+      align-items: start;
+      padding: 26px 28px;
+      border-bottom: 1px solid var(--line);
+    }
+    .settings-row:last-child { border-bottom: 0; }
+    .settings-row h2 { margin-bottom: 5px; }
+    .settings-row .help { max-width: 38ch; margin: 0; }
+    .settings-control { min-width: 0; }
+    .settings-control .field { margin: 0; }
+    .settings-actions { margin-top: 12px; }
+    .cleanup-controls { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; gap: 12px; align-items: end; }
+    .cleanup-controls .check-line { min-height: 40px; }
+    .cleanup-result { min-height: 18px; margin-top: 10px; }
+    .community-control { display: flex; align-items: center; gap: 24px; }
+    .community-control img { flex: 0 0 180px; width: 180px; height: 180px; margin: 0; object-fit: contain; }
+    .community-id { margin: 0; text-align: left; }
+
+    .quota-cell { min-width: 190px; }
+    .quota-line { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 12px; }
+    .quota-line + .quota-line { margin-top: 4px; }
+    .quota-line strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+    .quota-reset { display: block; margin-top: 1px; color: var(--faint); font-size: 11px; }
+    .quota-muted { color: var(--faint); font-size: 12px; }
+    .quota-error { color: var(--bad); font-size: 12px; }
+
+    @media (max-width: 900px) {
+      .workbench-layout { grid-template-columns: 1fr; }
+      .workbench-form, .workbench-preview { min-height: 0; }
+      .workbench-form .button[type="submit"] { margin-top: 0; }
+      .result-image img { max-height: 560px; }
+      .settings-row { grid-template-columns: 1fr; gap: 16px; }
+    }
+    @media (max-width: 600px) {
+      .workbench-form, .workbench-preview, .media-library-panel { padding: 18px; }
+      .reference-picker.has-preview { grid-template-columns: 64px minmax(0, 1fr); }
+      .reference-thumb { width: 64px; height: 64px; }
+      .cleanup-controls { grid-template-columns: 1fr; }
+      .community-control { align-items: flex-start; flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .progress-indicator::after { animation: none; transform: translateX(0); }
+    }
+  </style>
 </head>
 <body>
   <header class="topbar">
@@ -1667,17 +1844,17 @@
   <main class="shell">
     <nav class="tabs" aria-label="控制台导航">
       <button class="tab active" type="button" data-view="overview">总览</button>
-      <button class="tab" type="button" data-view="accounts">账号池</button>
+      <button class="tab" type="button" data-view="run">工作台</button>
+      <button class="tab" type="button" data-view="accounts">账号</button>
       <button class="tab" type="button" data-view="tasks">任务</button>
       <button class="tab" type="button" data-view="media">媒体</button>
-      <button class="tab" type="button" data-view="run">试运行</button>
       <button class="tab" type="button" data-view="settings">设置</button>
       <select id="viewSelect" class="mobile-view-select" aria-label="选择控制台页面">
         <option value="overview">总览</option>
-        <option value="accounts">账号池</option>
+        <option value="run">工作台</option>
+        <option value="accounts">账号</option>
         <option value="tasks">任务</option>
         <option value="media">媒体</option>
-        <option value="run">试运行</option>
         <option value="settings">设置</option>
       </select>
     </nav>
@@ -1707,8 +1884,8 @@
           <div class="eyebrow">快捷操作</div>
           <h2>常用操作</h2>
           <p>直接进入需要处理的运行面板。</p>
-          <button class="button primary block" type="button" data-go="run">开始图片试运行</button>
-          <button class="button block" type="button" data-go="accounts">管理账号池</button>
+          <button class="button primary block" type="button" data-go="run">打开工作台</button>
+          <button class="button block" type="button" data-go="accounts">管理账号</button>
           <button class="button block" type="button" data-go="media">查看媒体文件</button>
         </section>
       </div>
@@ -1731,7 +1908,7 @@
 
     <section id="view-accounts" class="view">
       <div class="section-head">
-        <div><div class="eyebrow">账号管理</div><h2>账号池</h2><p>认证失败时自动切换到其他启用账号。</p></div>
+        <div><h2>账号</h2></div>
         <div class="section-actions"><button id="refreshAccounts" class="button small" type="button">刷新</button><button id="addAccount" class="button primary small" type="button">添加账号</button></div>
       </div>
       <section class="panel">
@@ -1741,7 +1918,7 @@
 
     <section id="view-tasks" class="view">
       <div class="section-head">
-        <div><div class="eyebrow">任务队列</div><h2>任务记录</h2><p>异步图片任务保存在本地，服务重启中的任务会标记为失败。</p></div>
+        <div><h2>任务</h2></div>
         <div class="section-actions"><button id="refreshTasks" class="button small" type="button">刷新</button><button id="clearTasks" class="button danger small" type="button">清理已结束任务</button></div>
       </div>
       <section class="panel">
@@ -1751,72 +1928,74 @@
 
     <section id="view-media" class="view">
       <div class="section-head">
-        <div><div class="eyebrow">媒体存储</div><h2>媒体文件</h2><p>生成结果保存在本地媒体目录，并由 API 提供访问地址。</p></div>
+        <div><h2>媒体</h2></div>
         <div class="section-actions"><button id="refreshMedia" class="button small" type="button">刷新</button></div>
       </div>
-      <div class="two-col">
-        <section class="panel panel-pad"><div id="mediaGrid" class="media-grid"><div class="empty loading">读取中</div></div></section>
-        <section class="panel form-panel">
-          <div class="eyebrow">存储维护</div>
-          <h2>媒体清理</h2>
-          <p class="help">按文件修改时间清理旧文件。试运行不会删除内容。</p>
-          <form id="cleanupForm">
-            <div class="field"><label for="cleanupAge">保留最近多少天</label><input id="cleanupAge" type="number" min="1" value="7" required></div>
-            <label class="check-line"><input id="cleanupDryRun" type="checkbox" checked> 仅预览，不删除</label>
-            <button class="button primary block" type="submit" style="margin-top:16px">执行清理</button>
-          </form>
-          <div id="cleanupResult" class="help" aria-live="polite"></div>
-        </section>
-      </div>
+      <section class="panel media-library-panel"><div id="mediaGrid" class="media-grid"><div class="empty loading">读取中</div></div></section>
     </section>
 
     <section id="view-run" class="view">
-      <div class="section-head">
-        <div><div class="eyebrow">图片工作台</div><h2>图片试运行</h2><p>只调用 Hark 当前已确认的文生图和参考图编辑能力。</p></div>
+      <div id="workbenchEmpty" class="workbench-empty" hidden>
+        <div>
+          <h2>先添加一个 Hark 账号</h2>
+          <p>工作台需要使用已登录的账号调用 Hark。</p>
+          <button class="button primary" type="button" data-go="accounts">去添加账号</button>
+        </div>
       </div>
-      <div class="run-grid">
-        <form id="generationForm" class="panel run-panel">
-          <h2>文生图</h2>
-          <div class="field"><label for="generationPrompt">提示词</label><textarea id="generationPrompt" required placeholder="例如：一座带完整室内结构的像素风木屋"></textarea></div>
-          <button class="button primary block" type="submit">提交图片任务</button>
+      <div id="workbenchLayout" class="workbench-layout">
+        <form id="generationForm" class="panel workbench-form">
+          <h2>生成图片</h2>
+          <div class="field"><label for="generationPrompt">提示词</label><textarea id="generationPrompt" required placeholder="描述你想看到的画面"></textarea></div>
+          <div class="field">
+            <label for="editImage">参考图（可选）</label>
+            <label class="reference-picker" for="editImage">
+              <img id="referencePreview" class="reference-thumb" alt="" hidden>
+              <input id="editImage" type="file" accept="image/*">
+              <span class="reference-copy"><strong>选择一张图片</strong><span id="referenceFileName">不添加参考图时，将直接文生图</span></span>
+            </label>
+          </div>
+          <button class="button primary block" type="submit">生成图片</button>
         </form>
-        <form id="editForm" class="panel run-panel">
-          <h2>图片编辑</h2>
-          <div class="field"><label for="editPrompt">编辑要求</label><textarea id="editPrompt" required placeholder="例如：保留构图，改成蓝绿色调并移除文字"></textarea></div>
-          <div class="field"><label for="editImage">参考图片</label><input id="editImage" type="file" accept="image/*" required></div>
-          <button class="button primary block" type="submit">提交编辑任务</button>
-        </form>
-        <section class="panel result-panel" aria-live="polite">
-          <div class="section-head"><div><div class="eyebrow">输出结果</div><h2>运行结果</h2></div><span id="runStatus" class="badge">等待任务</span></div>
-          <div id="runResult" class="result-status">提交任务后，结果会显示在这里。</div>
+        <section class="panel workbench-preview" aria-live="polite">
+          <div class="preview-head"><span id="runStatus" class="badge">等待生成</span></div>
+          <div id="runResult" class="result-status empty-state">生成结果会显示在这里</div>
+          <div id="runActions" class="result-actions" hidden>
+            <button class="button small" type="button" data-go="tasks">查看任务</button>
+            <button class="button small" type="button" data-go="media">打开媒体</button>
+          </div>
+          <div id="workbenchQuota" class="workbench-quota" aria-live="polite"></div>
         </section>
       </div>
     </section>
 
     <section id="view-settings" class="view">
-      <div class="section-head">
-        <div><div class="eyebrow">访问配置</div><h2>设置</h2><p>管理当前浏览器会话使用的 API Key，并查看项目社区入口。</p></div>
-      </div>
-      <div class="settings-grid">
-        <section class="panel settings-panel">
-          <div class="eyebrow">接口鉴权</div>
-          <h2>API Key</h2>
-          <p class="help">服务端配置了 API Key 时，控制台请求和业务接口都需要携带它。</p>
-          <div class="field">
-            <label for="apiKey">当前会话 API Key</label>
-            <input id="apiKey" type="password" autocomplete="off" placeholder="未设置时留空">
+      <div class="settings-surface">
+        <section class="settings-row">
+          <div><div class="eyebrow">接口鉴权</div><h2>API Key</h2><p class="help">当前浏览器会话使用的密钥。</p></div>
+          <div class="settings-control">
+            <div class="field"><label for="apiKey">当前会话 API Key</label><input id="apiKey" type="password" autocomplete="off" placeholder="未设置时留空"></div>
+            <div class="settings-actions"><button id="saveKey" class="button primary" type="button">保存设置</button></div>
           </div>
-          <div class="settings-actions">
-            <button id="saveKey" class="button primary" type="button">保存设置</button>
-          </div>
-          <p class="help">只保存到当前浏览器会话。留空并保存即可清除。</p>
         </section>
-        <section id="community" class="panel community-panel">
-          <div class="eyebrow">社区交流</div>
-          <h2>加入交流群</h2>
-          <p class="help">扫码加入 Hark2API 交流群，反馈问题或交流使用经验。</p>
-          <img src="/docs/QQ群.png" alt="QQ群 1124104343 二维码">
-          <p class="community-id">QQ群 1124104343</p>
+        <section class="settings-row">
+          <div><div class="eyebrow">媒体维护</div><h2>清理媒体</h2><p class="help">按文件修改时间清理旧文件。</p></div>
+          <div class="settings-control">
+            <form id="cleanupForm">
+              <div class="cleanup-controls">
+                <div class="field"><label for="cleanupAge">保留天数</label><input id="cleanupAge" type="number" min="1" value="7" required></div>
+                <label class="check-line"><input id="cleanupDryRun" type="checkbox" checked> 仅预览，不删除</label>
+              </div>
+              <button class="button" type="submit">执行清理</button>
+            </form>
+            <div id="cleanupResult" class="help cleanup-result" aria-live="polite"></div>
+          </div>
+        </section>
+        <section id="community" class="settings-row">
+          <div><div class="eyebrow">社区交流</div><h2>交流群</h2><p class="help">反馈问题，交流使用经验。</p></div>
+          <div class="settings-control community-control">
+            <img src="/docs/QQ群.png" alt="QQ群 1124104343 二维码">
+            <p class="community-id">QQ群 1124104343</p>
+          </div>
         </section>
       </div>
     </section>
@@ -1933,40 +2112,6 @@
       setText('#metricMediaMeta', formatBytes(media.bytes));
     }
 
-    function renderAccounts() {
-      const rows = state.accounts.map((account) => {
-        const [label, tone] = accountState(account);
-        const actionLabel = account.enabled ? '禁用' : '启用';
-        return `<tr>
-          <td><span class="primary-cell">${escapeHtml(account.label || account.id)}</span><span class="sub-cell mono">${escapeHtml(account.id)}</span></td>
-          <td><span class="badge ${tone}">${label}</span></td>
-          <td class="num">${account.cookie_count || 0}</td>
-          <td class="num">${account.use_count || 0}<span class="sub-cell">${formatTime(account.last_used)}</span></td>
-          <td><div class="row-actions">
-            <button class="button small" data-account-action="test" data-id="${escapeHtml(account.id)}">测试</button>
-            <button class="button small" data-account-action="label" data-id="${escapeHtml(account.id)}">改标签</button>
-            <button class="button small" data-account-action="cookie" data-id="${escapeHtml(account.id)}">更新 Cookie</button>
-            <button class="button small" data-account-action="toggle" data-id="${escapeHtml(account.id)}">${actionLabel}</button>
-            <button class="button danger small" data-account-action="delete" data-id="${escapeHtml(account.id)}">删除</button>
-          </div></td>
-        </tr>`;
-      }).join('');
-      $('#accountTable').innerHTML = state.accounts.length ? `<table><thead><tr><th>账号</th><th>状态</th><th>Cookie</th><th>使用次数</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table>` : '<div class="empty">暂无持久化账号。点击“添加账号”导入 Cookie。</div>';
-    }
-
-    function renderTasks() {
-      const rows = state.tasks.map((task) => `<tr>
-        <td><span class="primary-cell mono">${escapeHtml(task.id)}</span><span class="sub-cell">${formatTime(task.created_at)}</span></td>
-        <td>${statusBadge(task.status)}</td>
-        <td><span class="primary-cell">${escapeHtml(task.prompt || '')}</span><span class="sub-cell">进度 ${Number(task.progress || 0)}%</span></td>
-        <td class="num">${task.elapsed == null ? '--' : `${task.elapsed}s`}</td>
-        <td>${task.error ? `<span class="sub-cell" title="${escapeHtml(task.error)}">${escapeHtml(task.error).slice(0, 80)}</span>` : '<span class="sub-cell">--</span>'}</td>
-        <td>${['completed', 'failed'].includes(task.status) ? `<button class="button danger small" data-task-action="delete" data-id="${escapeHtml(task.id)}">删除</button>` : '<span class="sub-cell">运行中</span>'}</td>
-      </tr>`).join('');
-      $('#taskTable').innerHTML = state.tasks.length ? `<table><thead><tr><th>任务</th><th>状态</th><th>提示词</th><th>耗时</th><th>错误</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table>` : '<div class="empty">暂无任务记录。</div>';
-      setText('#metricTasks', state.tasks.length);
-    }
-
     function renderRecentTasks() {
       const recent = state.tasks.slice(0, 5);
       const rows = recent.map((task) => `<tr><td class="mono">${escapeHtml(task.id)}</td><td>${statusBadge(task.status)}</td><td>${escapeHtml(task.prompt || '')}</td><td class="sub-cell">${formatTime(task.created_at)}</td></tr>`).join('');
@@ -1981,11 +2126,84 @@
       $('#mediaGrid').innerHTML = state.media.length ? items : '<div class="empty">暂无媒体文件。</div>';
     }
 
+    function renderQuota(account) {
+      const usage = account.usage;
+      if (!usage || usage.status === 'loading') return '<span class="quota-muted">额度查询中...</span>';
+      if (usage.status === 'error') return '<span class="quota-error">获取失败：' + escapeHtml(usage.error || '请重试') + '</span>';
+      if (usage.status !== 'ready') return '<span class="quota-muted">尚未查询</span>';
+      return '<div class="quota-line"><span>每日剩余</span><strong>' + escapeHtml(usage.daily.left) + '</strong></div>' +
+        '<span class="quota-reset">重置 ' + escapeHtml(usage.daily.reset) + '</span>' +
+        '<div class="quota-line"><span>月度剩余</span><strong>' + escapeHtml(usage.monthly.left) + '</strong></div>' +
+        '<span class="quota-reset">重置 ' + escapeHtml(usage.monthly.reset) + '</span>' +
+        '<span class="sub-cell">更新于 ' + formatTime(usage.updated_at) + '</span>';
+    }
+
+    function renderAccounts() {
+      const rows = state.accounts.map((account) => {
+        const [label, tone] = accountState(account);
+        const actionLabel = account.enabled ? '禁用' : '启用';
+        return '<tr>' +
+          '<td><span class="primary-cell">' + escapeHtml(account.label || account.id) + '</span><span class="sub-cell mono">' + escapeHtml(account.id) + '</span></td>' +
+          '<td><span class="badge ' + tone + '">' + label + '</span></td>' +
+          '<td class="quota-cell">' + renderQuota(account) + '</td>' +
+          '<td class="num">' + (account.cookie_count || 0) + '</td>' +
+          '<td class="num">' + (account.use_count || 0) + '<span class="sub-cell">' + formatTime(account.last_used) + '</span></td>' +
+          '<td><div class="row-actions">' +
+            '<button class="button small" data-account-action="test" data-id="' + escapeHtml(account.id) + '">测试</button>' +
+            '<button class="button small" data-account-action="usage" data-id="' + escapeHtml(account.id) + '">刷新额度</button>' +
+            '<button class="button small" data-account-action="label" data-id="' + escapeHtml(account.id) + '">改标签</button>' +
+            '<button class="button small" data-account-action="cookie" data-id="' + escapeHtml(account.id) + '">更新 Cookie</button>' +
+            '<button class="button small" data-account-action="toggle" data-id="' + escapeHtml(account.id) + '">' + actionLabel + '</button>' +
+            '<button class="button danger small" data-account-action="delete" data-id="' + escapeHtml(account.id) + '">删除</button>' +
+          '</div></td>' +
+        '</tr>';
+      }).join('');
+      $('#accountTable').innerHTML = state.accounts.length
+        ? '<table><thead><tr><th>账号</th><th>状态</th><th>额度</th><th>Cookie</th><th>使用次数</th><th>操作</th></tr></thead><tbody>' + rows + '</tbody></table>'
+        : '<div class="empty">暂无账号。点击“添加账号”导入 Cookie。</div>';
+    }
+
+    function renderTasks() {
+      const rows = state.tasks.map((task) => {
+        const phase = task.phase || (task.progress_known ? '进度 ' + task.progress + '%' : '进度未知');
+        return '<tr>' +
+          '<td><span class="primary-cell mono">' + escapeHtml(task.id) + '</span><span class="sub-cell">' + formatTime(task.created_at) + '</span></td>' +
+          '<td>' + statusBadge(task.status) + '</td>' +
+          '<td><span class="primary-cell">' + escapeHtml(task.prompt || '') + '</span><span class="sub-cell">' + escapeHtml(phase) + '</span></td>' +
+          '<td class="num">' + (task.elapsed == null ? '--' : task.elapsed + 's') + '</td>' +
+          '<td>' + (task.error ? '<span class="sub-cell" title="' + escapeHtml(task.error) + '">' + escapeHtml(task.error).slice(0, 80) + '</span>' : '<span class="sub-cell">--</span>') + '</td>' +
+          '<td>' + (['completed', 'failed'].includes(task.status) ? '<button class="button danger small" data-task-action="delete" data-id="' + escapeHtml(task.id) + '">删除</button>' : '<span class="sub-cell">运行中</span>') + '</td>' +
+        '</tr>';
+      }).join('');
+      $('#taskTable').innerHTML = state.tasks.length
+        ? '<table><thead><tr><th>任务</th><th>状态</th><th>提示词</th><th>耗时</th><th>错误</th><th>操作</th></tr></thead><tbody>' + rows + '</tbody></table>'
+        : '<div class="empty">暂无任务。</div>';
+      setText('#metricTasks', state.tasks.length);
+    }
+
+    function renderWorkbenchGate() {
+      const hasAccounts = state.accounts.length > 0;
+      $('#workbenchEmpty').hidden = hasAccounts;
+      $('#workbenchLayout').hidden = !hasAccounts;
+    }
+
+    function renderWorkbenchQuota() {
+      const ready = state.accounts.filter((account) => account.usage?.status === 'ready');
+      const loading = state.accounts.some((account) => account.usage?.status === 'loading');
+      const failed = state.accounts.some((account) => account.usage?.status === 'error');
+      if (loading) $('#workbenchQuota').textContent = '额度查询中...';
+      else if (ready.length) $('#workbenchQuota').textContent = '额度已更新，可在“账号”中查看每日和月度剩余。';
+      else if (failed) $('#workbenchQuota').textContent = '额度获取失败，可到“账号”中重试。';
+      else $('#workbenchQuota').textContent = '';
+    }
+
     async function loadStatus() { renderStatus(await api('/admin/status')); }
     async function loadAccounts() {
       const data = await api('/admin/accounts');
       state.accounts = data.accounts || [];
       renderAccounts();
+      renderWorkbenchGate();
+      renderWorkbenchQuota();
       if (!state.status) renderStatus({ accounts: data.stats || {}, media: {} });
       else renderStatus({ ...state.status, accounts: data.stats || state.status.accounts });
     }
@@ -2061,6 +2279,12 @@
           await loadAccounts();
           await loadStatus();
         }
+        if (action === 'usage') {
+          showNotice('正在查询额度，请稍候...');
+          await api('/admin/accounts/' + encodeURIComponent(id) + '/usage', { method: 'POST' });
+          showNotice('额度已更新。', 'success');
+          await loadAccounts();
+        }
         if (action === 'label' || action === 'cookie') setDialogMode(action, account);
         if (action === 'toggle') {
           await api(`/admin/accounts/${encodeURIComponent(id)}`, { method: 'PATCH', body: { enabled: !account.enabled } });
@@ -2109,62 +2333,93 @@
 
     function wait(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
+    function setRunStatus(task) {
+      const status = String(task.status || 'queued');
+      const tone = status === 'completed' ? 'good' : (status === 'failed' ? 'bad' : 'warn');
+      const label = status === 'completed' ? '已完成' : (status === 'failed' ? '失败' : (task.phase || '处理中'));
+      const progress = task.progress_known && task.progress != null ? ' ' + task.progress + '%' : '';
+      const element = $('#runStatus');
+      element.className = 'badge ' + tone;
+      element.textContent = label + progress;
+    }
+
+    function renderRunResult(task) {
+      const result = $('#runResult');
+      const actions = $('#runActions');
+      result.className = 'result-status';
+      if (task.status === 'failed') {
+        actions.hidden = true;
+        result.innerHTML = '<span class="badge bad">失败</span><p class="result-copy">' + escapeHtml(task.error || '任务失败') + '</p>';
+        return;
+      }
+      const item = (task.data || [])[0];
+      if (!item || !item.url) {
+        actions.hidden = true;
+        result.textContent = '任务完成，但没有返回图片。';
+        return;
+      }
+      result.innerHTML = '<div class="result-image"><img src="' + escapeHtml(item.url) + '" alt="生成结果"></div><p class="result-copy"><a href="' + escapeHtml(item.url) + '" target="_blank" rel="noreferrer">打开原图</a></p>';
+      actions.hidden = false;
+    }
+
     async function pollTask(taskId) {
       const deadline = Date.now() + 15 * 60 * 1000;
       while (Date.now() < deadline) {
-        const task = await api(`/v1/images/tasks/${encodeURIComponent(taskId)}`);
-        $('#runStatus').outerHTML = `<span id="runStatus" class="badge ${task.status === 'completed' ? 'good' : task.status === 'failed' ? 'bad' : 'warn'}">${escapeHtml(task.status)} ${Number(task.progress || 0)}%</span>`;
+        const task = await api('/v1/images/tasks/' + encodeURIComponent(taskId));
+        setRunStatus(task);
         if (task.status === 'completed' || task.status === 'failed') return task;
+        $('#runResult').className = 'result-status empty-state';
+        $('#runResult').innerHTML = '<span class="progress-indicator" aria-hidden="true"></span><strong>' + escapeHtml(task.phase || '处理中') + '</strong>';
         await wait(1200);
       }
       throw new Error('任务等待超时，请到“任务”页查看状态。');
     }
 
-    function renderRunResult(task) {
-      if (task.status === 'failed') { $('#runResult').innerHTML = `<span class="badge bad">失败</span> ${escapeHtml(task.error || '任务失败')}`; return; }
-      const items = (task.data || []).map((item) => `<figure><img src="${escapeHtml(item.url || '')}" alt="生成结果"><figcaption><a href="${escapeHtml(item.url || '')}" target="_blank" rel="noreferrer">打开原图</a></figcaption></figure>`).join('');
-      $('#runResult').innerHTML = items ? `<div class="result-output">${items}</div>` : '任务完成，但没有返回图片。';
+    async function waitForUsage() {
+      for (let attempt = 0; attempt < 20; attempt += 1) {
+        await loadAccounts();
+        if (!state.accounts.some((account) => account.usage?.status === 'loading')) return;
+        await wait(1200);
+      }
     }
 
     async function runGeneration(event) {
       event.preventDefault();
       const form = event.currentTarget;
       const button = form.querySelector('button[type="submit"]');
+      const prompt = $('#generationPrompt').value.trim();
+      const file = $('#editImage').files[0];
       button.disabled = true;
+      $('#runActions').hidden = true;
+      $('#workbenchQuota').textContent = '';
+      $('#runResult').className = 'result-status empty-state';
       $('#runResult').textContent = '正在提交任务...';
       try {
-        const task = await api('/v1/images/tasks', { method: 'POST', body: { prompt: $('#generationPrompt').value.trim(), response_format: 'url' } });
-        $('#runStatus').textContent = '排队中';
+        let task;
+        if (file) {
+          const body = new FormData();
+          body.append('prompt', prompt);
+          body.append('image', file);
+          body.append('response_format', 'url');
+          body.append('async', 'true');
+          task = await api('/v1/images/edits', { method: 'POST', body });
+        } else {
+          task = await api('/v1/images/tasks', { method: 'POST', body: { prompt, response_format: 'url' } });
+        }
+        setRunStatus(task);
         const done = await pollTask(task.id || task.task_id);
         renderRunResult(done);
-        await loadTasks();
-        await loadMedia();
-      } catch (error) { $('#runResult').textContent = error.message; $('#runStatus').textContent = '失败'; showNotice(error.message, 'error'); }
-      finally { button.disabled = false; }
-    }
-
-    async function runEdit(event) {
-      event.preventDefault();
-      const form = event.currentTarget;
-      const button = form.querySelector('button[type="submit"]');
-      const file = $('#editImage').files[0];
-      if (!file) return;
-      button.disabled = true;
-      $('#runResult').textContent = '正在提交编辑任务...';
-      try {
-        const body = new FormData();
-        body.append('prompt', $('#editPrompt').value.trim());
-        body.append('image', file);
-        body.append('response_format', 'url');
-        body.append('async', 'true');
-        const task = await api('/v1/images/edits', { method: 'POST', body });
-        $('#runStatus').textContent = '排队中';
-        const done = await pollTask(task.id || task.task_id);
-        renderRunResult(done);
-        await loadTasks();
-        await loadMedia();
-      } catch (error) { $('#runResult').textContent = error.message; $('#runStatus').textContent = '失败'; showNotice(error.message, 'error'); }
-      finally { button.disabled = false; }
+        await Promise.all([loadTasks(), loadMedia(), waitForUsage()]);
+      } catch (error) {
+        $('#runActions').hidden = true;
+        $('#runResult').className = 'result-status empty-state';
+        $('#runResult').textContent = error.message;
+        $('#runStatus').className = 'badge bad';
+        $('#runStatus').textContent = '失败';
+        showNotice(error.message, 'error');
+      } finally {
+        button.disabled = false;
+      }
     }
 
     $('#apiKey').value = getKey();
@@ -2181,11 +2436,26 @@
     $('#cancelAccountDialog').addEventListener('click', () => $('#accountDialog').close());
     $('#cleanupForm').addEventListener('submit', cleanupMedia);
     $('#generationForm').addEventListener('submit', runGeneration);
-    $('#editForm').addEventListener('submit', runEdit);
+    $('#editImage').addEventListener('change', (event) => {
+      const file = event.target.files[0];
+      $('#referenceFileName').textContent = file ? file.name : '不添加参考图时，将直接文生图';
+      document.querySelector('.reference-picker').classList.toggle('has-preview', Boolean(file));
+      const preview = $('#referencePreview');
+      if (!file) {
+        preview.hidden = true;
+        preview.removeAttribute('src');
+        return;
+      }
+      preview.src = URL.createObjectURL(file);
+      preview.hidden = false;
+    });
 
     $$('.tab').forEach((tab) => tab.addEventListener('click', () => switchView(tab.dataset.view)));
     $('#viewSelect').addEventListener('change', (event) => switchView(event.target.value));
-    $$('[data-go]').forEach((button) => button.addEventListener('click', () => switchView(button.dataset.go, button.dataset.focus || '')));
+    document.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-go]');
+      if (button) switchView(button.dataset.go, button.dataset.focus || '');
+    });
     $('#accountTable').addEventListener('click', (event) => { const button = event.target.closest('[data-account-action]'); if (button) accountAction(button.dataset.accountAction, button.dataset.id); });
     $('#taskTable').addEventListener('click', (event) => { const button = event.target.closest('[data-task-action]'); if (button) taskAction(button.dataset.id); });
     $('#mediaGrid').addEventListener('click', (event) => { const button = event.target.closest('[data-media-action]'); if (button) mediaAction(button.dataset.name); });

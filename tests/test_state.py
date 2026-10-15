@@ -34,10 +34,19 @@ def main():
             def run(self, *args, **kwargs):
                 return HarkResult("c", "m", "ok", [])
 
+            def query_usage(self, *args, **kwargs):
+                return {
+                    "daily": {"left": "95%", "reset": "2026-10-16 11:07"},
+                    "monthly": {"left": "99%", "reset": "2026-11-01 08:00"},
+                }
+
         pool.clients[first["id"]] = FailingClient()
         pool.clients[second["id"]] = WorkingClient()
         assert pool.run("hello").text == "ok"
         assert AccountStore(account_path).get(first["id"])["ok"] is False
+        account = pool.refresh_usage(second["id"])
+        assert account["usage"]["status"] == "ready"
+        assert account["usage"]["daily"]["left"] == "95%"
 
         task_path = os.path.join(directory, "tasks.json")
         task_store = TaskStore(task_path)
@@ -45,6 +54,7 @@ def main():
         task_store.update(task["id"], status="processing")
         recovered = TaskStore(task_path).get(task["id"])
         assert recovered["status"] == "failed"
+        assert recovered["progress"] is None and recovered["phase"] == "失败"
         assert "interrupted" in recovered["error"]
 
         cookie_file = os.path.join(directory, "cookie.txt")

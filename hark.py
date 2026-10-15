@@ -3,11 +3,13 @@ from __future__ import annotations
 
 import mimetypes
 import os
+import json
 import re
 import threading
 import time
 import uuid
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urljoin
@@ -31,6 +33,22 @@ class HarkGenerationError(HarkError):
     pass
 
 
+class HarkUsageError(HarkError):
+    pass
+
+
+USAGE_PROMPT = (
+    "查额度。只输出一个 JSON 对象，第一个字符必须是 {，最后一个字符必须是 }。"
+    "禁止任何解释、寒暄、markdown、代码块或换行。"
+    "格式（严格照抄键名和顺序）："
+    "{\"d\":{\"left\":\"98%\",\"reset\":\"2026-10-16 11:07\"},"
+    "\"m\":{\"left\":\"100%\",\"reset\":\"2026-11-01 08:00\"}}"
+    "规则：d = 每日额度，m = 月度额度，left = 100 减去已用百分比，整数加 %，"
+    "reset 用 Asia/Shanghai 时间，格式 YYYY-MM-DD HH:mm。"
+    "取不到数据时只输出 {\"error\":\"原因\"}。"
+)
+
+
 def parse_cookie_header(text: str | None) -> dict[str, str]:
     """Parse a browser Cookie header without retaining cookie attributes."""
     out: dict[str, str] = {}
@@ -43,6 +61,38 @@ def parse_cookie_header(text: str | None) -> dict[str, str]:
         if name:
             out[name] = value.strip()
     return out
+
+
+def parse_usage_response(text: str) -> dict[str, dict[str, str]]:
+    raw = str(text or "")
+    if not raw.startswith("{") or not raw.endswith("}") or "\n" in raw or "\r" in raw:
+        raise HarkUsageError("额度响应不是严格 JSON 对象")
+    try:
+        value = json.loads(raw)
+    except (TypeError, ValueError):
+        raise HarkUsageError("额度响应 JSON 解析失败") from None
+    if not isinstance(value, dict):
+        raise HarkUsageError("额度响应不是 JSON 对象")
+    if "error" in value:
+        raise HarkUsageError(f"Hark 未返回额度：{str(value.get('error') or '未知原因')[:160]}")
+
+    def window(name: str, label: str) -> dict[str, str]:
+        item = value.get(name)
+        if not isinstance(item, dict):
+            raise HarkUsageError(f"额度响应缺少 {label} 数据")
+        left = item.get("left")
+        reset = item.get("reset")
+        if not isinstance(left, str) or not re.fullmatch(r"(?:0|[1-9]\d?|100)%", left):
+            raise HarkUsageError(f"{label}剩余额度格式无效")
+        if not isinstance(reset, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", reset):
+            raise HarkUsageError(f"{label}重置时间格式无效")
+        try:
+            datetime.strptime(reset, "%Y-%m-%d %H:%M")
+        except ValueError:
+            raise HarkUsageError(f"{label}重置时间格式无效") from None
+        return {"left": left, "reset": reset}
+
+    return {"daily": window("d", "每日"), "monthly": window("m", "月度")}
 
 
 def history_messages(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -105,12 +155,36 @@ def reply_attachments(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return out
 
 
+def reply_stage(messages: list[dict[str, Any]]) -> str:
+    if not messages:
+        return "waiting"
+    active_states = {"queued", "pending", "running", "processing", "in_progress", "streaming"}
+    if any(
+        message.get("isStreaming") is True
+        or str(message.get("jobStatus") or "").lower() in active_states
+        for message in messages
+    ):
+        return "generating"
+    if any(
+        message.get("attachments")
+        or isinstance(message.get("content"), str) and message["content"].strip()
+        for message in messages
+    ):
+        return "finalizing"
+    return "waiting"
+
+
 def reply_terminal(messages: list[dict[str, Any]]) -> bool:
     """Return true once Hark has a visible answer or a completed tool run."""
     complete_states = {"completed", "failed", "cancelled", "interrupted"}
+    active_states = {"queued", "pending", "running", "processing", "in_progress", "streaming"}
+    if any(
+        message.get("isStreaming") is True
+        or str(message.get("jobStatus") or "").lower() in active_states
+        for message in messages
+    ):
+        return False
     for message in messages:
-        if message.get("isStreaming") is True:
-            continue
         source = message.get("source")
         if source not in {"web", "onboarding"}:
             if isinstance(message.get("content"), str) and message["content"].strip():
@@ -128,6 +202,7 @@ class HarkResult:
     message_id: str
     text: str
     attachments: list[dict[str, Any]]
+    account_id: str | None = None
 
 
 class HarkClient:
@@ -286,6 +361,10 @@ class HarkClient:
             "GET", "/messages/history", params={"conversationId": conversation_id, "v": "2"}
         )
 
+    def query_usage(self, timeout: int | None = None) -> dict[str, dict[str, str]]:
+        result = self.run(USAGE_PROMPT, timeout=timeout)
+        return parse_usage_response(result.text)
+
     def _download_attachment(self, conversation_id: str, attachment: dict[str, Any]) -> dict[str, Any]:
         download_url = attachment.get("downloadUrl")
         if not isinstance(download_url, str) or not download_url.startswith("/api/files/"):
@@ -352,6 +431,7 @@ class HarkClient:
         prompt: str,
         timeout: int | None = None,
         on_text: Callable[[str], None] | None = None,
+        on_status: Callable[[str], None] | None = None,
         require_attachment: bool = False,
         input_attachment: tuple[str, str, bytes] | None = None,
     ) -> HarkResult:
@@ -367,6 +447,7 @@ class HarkClient:
             message_id = self.send_message(conversation_id, prompt, user_id, attachments)
             emitted = ""
             last_state: Any = None
+            last_stage: str | None = None
             terminal_at: float | None = None
             final_messages: list[dict[str, Any]] = []
 
@@ -375,6 +456,10 @@ class HarkClient:
                 messages = reply_messages(payload, message_id)
                 text = reply_text(messages)
                 attachments = reply_attachments(messages)
+                stage = reply_stage(messages)
+                if on_status and stage != last_stage:
+                    on_status(stage)
+                    last_stage = stage
                 if on_text and text != emitted:
                     delta = text[len(emitted):] if text.startswith(emitted) else text
                     if delta:
@@ -399,6 +484,8 @@ class HarkClient:
                     raise HarkGenerationError("timed out waiting for Hark's response")
                 time.sleep(max(0.05, self.cfg.poll_interval))
 
+            if on_status:
+                on_status("finalizing")
             downloaded = [self._download_attachment(conversation_id, a) for a in reply_attachments(final_messages)]
             final_text = reply_text(final_messages)
             if require_attachment and not any(str(a.get("mediaType", "")).startswith("image/") for a in downloaded):

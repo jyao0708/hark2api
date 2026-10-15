@@ -140,6 +140,14 @@ class AccountStore:
                     self._write()
                     return
 
+    def set_usage(self, account_id: str, usage: dict[str, Any]) -> None:
+        with self.lock:
+            for account in self.accounts:
+                if str(account.get("id")) == account_id:
+                    account["usage"] = usage
+                    self._write()
+                    return
+
     def delete(self, account_id: str) -> bool:
         with self.lock:
             original = len(self.accounts)
@@ -167,7 +175,13 @@ class HarkAccountPool:
         self.store = AccountStore(cfg.accounts_file)
         self.lock = threading.RLock()
         self.clients: dict[str, HarkClient] = {}
-        self.virtual_status: dict[str, Any] = {"ok": None, "note": "", "use_count": 0, "last_used": None}
+        self.virtual_status: dict[str, Any] = {
+            "ok": None,
+            "note": "",
+            "use_count": 0,
+            "last_used": None,
+            "usage": None,
+        }
 
     def _records(self) -> list[dict[str, Any]]:
         persisted = self.store.list_internal()
@@ -208,6 +222,7 @@ class HarkAccountPool:
         prompt: str,
         timeout: int | None = None,
         on_text: Callable[[str], None] | None = None,
+        on_status: Callable[[str], None] | None = None,
         require_attachment: bool = False,
         input_attachment: tuple[str, str, bytes] | None = None,
     ) -> HarkResult:
@@ -222,9 +237,11 @@ class HarkAccountPool:
                     prompt,
                     timeout=timeout,
                     on_text=on_text,
+                    on_status=on_status,
                     require_attachment=require_attachment,
                     input_attachment=input_attachment,
                 )
+                result.account_id = account_id
                 self._mark_success(account)
                 return result
             except HarkAuthError as exc:
@@ -272,6 +289,7 @@ class HarkAccountPool:
             "note": self.virtual_status["note"],
             "use_count": self.virtual_status["use_count"],
             "last_used": self.virtual_status["last_used"],
+            "usage": self.virtual_status["usage"],
             "cookie_count": self.cookie_count(),
             "cookie_configured": bool(records),
             "persistent": False,
@@ -316,6 +334,46 @@ class HarkAccountPool:
         except HarkAuthError as exc:
             self._mark_failure(account, str(exc))
             return {"ok": False, "account_id": account_id, "error": str(exc)}
+
+    def set_usage_pending(self, account_id: str) -> None:
+        self._set_usage(account_id, {
+            "status": "loading",
+            "updated_at": int(time.time()),
+        })
+
+    def refresh_usage(self, account_id: str, timeout: int | None = None) -> dict[str, Any]:
+        account = next((item for item in self._records() if str(item.get("id")) == account_id), None)
+        if account is None:
+            raise KeyError(account_id)
+        try:
+            usage = self._client(account).query_usage(timeout=timeout)
+            record = {"status": "ready", **usage, "updated_at": int(time.time())}
+            self._set_usage(account_id, record)
+            if account_id == "env":
+                self.virtual_status.update(ok=True, note="")
+            else:
+                self.store.mark(account_id, True)
+        except HarkAuthError as exc:
+            self._mark_failure(account, str(exc))
+            self._set_usage(account_id, {
+                "status": "error",
+                "error": str(exc),
+                "updated_at": int(time.time()),
+            })
+        except HarkError as exc:
+            self._set_usage(account_id, {
+                "status": "error",
+                "error": str(exc),
+                "updated_at": int(time.time()),
+            })
+        current = next((item for item in self.list_accounts() if str(item.get("id")) == account_id), None)
+        return current or {}
+
+    def _set_usage(self, account_id: str, usage: dict[str, Any]) -> None:
+        if account_id == "env":
+            self.virtual_status["usage"] = usage
+        else:
+            self.store.set_usage(account_id, usage)
 
     @staticmethod
     def attachment_markdown(attachments: list[dict[str, Any]], base_url: str) -> str:

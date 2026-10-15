@@ -5,7 +5,18 @@ from unittest.mock import Mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from hark import HarkClient, history_messages, parse_cookie_header, reply_attachments, reply_messages, reply_text
+from hark import (
+    HarkClient,
+    HarkUsageError,
+    history_messages,
+    parse_cookie_header,
+    parse_usage_response,
+    reply_attachments,
+    reply_messages,
+    reply_stage,
+    reply_terminal,
+    reply_text,
+)
 from app import ChatMessage, ResponsesRequest, _response_envelope, _responses_prompt, build_prompt
 
 
@@ -34,6 +45,35 @@ def test_attachment_upload():
     assert client._request_json.call_args_list[1].kwargs["json"] == {"s3_key": "k1", "path": "p1"}
 
 
+def test_usage_parser_and_active_stage():
+    usage = parse_usage_response(
+        '{"d":{"left":"95%","reset":"2026-10-16 11:07"},'
+        '"m":{"left":"99%","reset":"2026-11-01 08:00"}}'
+    )
+    assert usage == {
+        "daily": {"left": "95%", "reset": "2026-10-16 11:07"},
+        "monthly": {"left": "99%", "reset": "2026-11-01 08:00"},
+    }
+
+    active_messages = [
+        {"isStreaming": False, "jobStatus": "completed"},
+        {"isStreaming": True, "jobStatus": "running"},
+    ]
+    assert reply_stage(active_messages) == "generating"
+    assert not reply_terminal(active_messages)
+
+    for invalid in (
+        '说明 {"d":{"left":"95%","reset":"2026-10-16 11:07"}}',
+        '{"d":{"left":"95%","reset":"2026-1-16 11:07"},"m":{"left":"99%","reset":"2026-11-01 08:00"}}',
+    ):
+        try:
+            parse_usage_response(invalid)
+        except HarkUsageError:
+            pass
+        else:
+            raise AssertionError("invalid usage response was accepted")
+
+
 def main():
     cookies = parse_cookie_header("a=1; __Secure-hark.session_token=x%3Dy; empty=")
     assert cookies == {"a": "1", "__Secure-hark.session_token": "x%3Dy", "empty": ""}
@@ -54,6 +94,7 @@ def main():
     assert [item["id"] for item in messages] == [user_id, "answer"]
     assert reply_text(replies) == "done"
     assert reply_attachments(replies)[0]["name"] == "x.png"
+    test_usage_parser_and_active_stage()
 
     prompt = build_prompt([ChatMessage(role="system", content="be concise"), ChatMessage(role="user", content="hello")])
     assert "SYSTEM:" in prompt and "USER:" in prompt and prompt.endswith("ASSISTANT:")

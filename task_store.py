@@ -19,7 +19,13 @@ class TaskStore:
         changed = False
         for task in self.tasks.values():
             if task.get("status") in {"queued", "processing"}:
-                task.update(status="failed", error="worker interrupted by service restart")
+                task.update(
+                    status="failed",
+                    progress=None,
+                    progress_known=False,
+                    phase="失败",
+                    error="worker interrupted by service restart",
+                )
                 task["updated_at"] = int(time.time())
                 changed = True
         if changed:
@@ -53,11 +59,14 @@ class TaskStore:
             "kind": kind,
             "prompt": prompt,
             "status": "queued",
-            "progress": 0,
+            "progress": None,
+            "progress_known": False,
+            "phase": "排队中",
             "created_at": now,
             "updated_at": now,
             "result": None,
             "error": None,
+            "usage_status": "idle",
             **fields,
         }
         with self.lock:

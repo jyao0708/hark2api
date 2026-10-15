@@ -257,7 +257,11 @@ def _task_result_images(result) -> list[dict[str, Any]]:
 
 def _task_response(task: dict[str, Any], request: Request) -> dict[str, Any]:
     result = task.get("result") or {}
-    output = {key: value for key, value in task.items() if key not in {"request_hash", "idempotency_key_hash"}}
+    output = {
+        key: value
+        for key, value in task.items()
+        if key not in {"request_hash", "idempotency_key_hash", "account_id"}
+    }
     if task.get("status") == "completed":
         output["data"] = _image_data(
             result.get("images") or [],
@@ -303,7 +307,9 @@ def _queue_image(
                 raise HTTPException(409, "Idempotency-Key reused with different request")
             return JSONResponse(status_code=202, content={
                 "id": task["id"], "task_id": task["id"], "object": "image.task",
-                "status": task["status"], "progress": task.get("progress", 0),
+                "status": task["status"], "progress": task.get("progress"),
+                "progress_known": bool(task.get("progress_known")),
+                "phase": task.get("phase", "排队中"),
                 "created_at": task["created_at"],
             })
     active = sum(
@@ -323,11 +329,27 @@ def _queue_image(
 
     def worker():
         started = time.time()
-        tasks.update(task_id, status="processing", progress=5)
+        tasks.update(
+            task_id,
+            status="processing",
+            progress=None,
+            progress_known=False,
+            phase="等待 Hark 响应",
+        )
+
+        def on_status(stage: str):
+            tasks.update(
+                task_id,
+                phase=_task_phase(stage),
+                progress=None,
+                progress_known=False,
+            )
+
         try:
             result = client.run(
                 prompt,
                 timeout=timeout,
+                on_status=on_status,
                 require_attachment=True,
                 input_attachment=input_attachment,
             )
@@ -338,14 +360,21 @@ def _queue_image(
                 task_id,
                 status="completed",
                 progress=100,
+                progress_known=True,
+                phase="已完成",
                 elapsed=round(time.time() - started, 1),
                 result={"images": images},
+                account_id=result.account_id,
+                usage_status="idle",
             )
+            _schedule_usage_refresh(result, task_id)
         except Exception as exc:
             tasks.update(
                 task_id,
                 status="failed",
-                progress=100,
+                progress=None,
+                progress_known=False,
+                phase="失败",
                 elapsed=round(time.time() - started, 1),
                 error=str(exc),
             )
@@ -356,7 +385,9 @@ def _queue_image(
         "task_id": task_id,
         "object": "image.task",
         "status": "queued",
-        "progress": 0,
+        "progress": None,
+        "progress_known": False,
+        "phase": "排队中",
         "created_at": task["created_at"],
     })
 
@@ -580,6 +611,7 @@ def image_generations(req: ImageRequest, request: Request, _=Depends(auth)):
     if req.async_:
         return _queue_image(req.prompt, req.timeout, req.response_format)
     result = client.run(req.prompt, timeout=req.timeout, require_attachment=True)
+    _schedule_usage_refresh(result)
     return _image_response(result, req.prompt, req.response_format, request)
 
 
@@ -652,6 +684,7 @@ def image_edits(
         require_attachment=True,
         input_attachment=(filename, media_type, content),
     )
+    _schedule_usage_refresh(result)
     return _image_response(result, prompt, response_format, request)
 
 
@@ -683,7 +716,47 @@ def _media_items(request: Request) -> list[dict[str, Any]]:
 
 
 def _public_task(task: dict[str, Any]) -> dict[str, Any]:
-    return {key: value for key, value in task.items() if key not in {"request_hash", "idempotency_key_hash"}}
+    return {
+        key: value
+        for key, value in task.items()
+        if key not in {"request_hash", "idempotency_key_hash", "account_id"}
+    }
+
+
+def _task_phase(stage: str) -> str:
+    return {
+        "waiting": "等待 Hark 响应",
+        "generating": "Hark 生成中",
+        "finalizing": "整理结果",
+    }.get(stage, "处理中")
+
+
+def _schedule_usage_refresh(result, task_id: str | None = None) -> None:
+    account_id = getattr(result, "account_id", None)
+    if not account_id:
+        return
+    client.set_usage_pending(account_id)
+    if task_id:
+        tasks.update(task_id, usage_status="loading")
+
+    def worker():
+        account = client.refresh_usage(
+            account_id,
+            timeout=min(int(getattr(CFG, "chat_timeout", 120)), 180),
+        )
+        if task_id:
+            usage = account.get("usage")
+            tasks.update(
+                task_id,
+                usage=usage,
+                usage_status=(usage or {}).get("status", "error"),
+            )
+
+    threading.Thread(
+        target=worker,
+        daemon=True,
+        name=f"hark-usage-{account_id}",
+    ).start()
 
 
 @app.get("/admin/accounts")
@@ -724,6 +797,17 @@ def admin_test_account(account_id: str, _=Depends(auth)):
     except KeyError:
         raise HTTPException(404, "account not found") from None
     return result
+
+
+@app.post("/admin/accounts/{account_id}/usage")
+def admin_refresh_usage(account_id: str, _=Depends(auth)):
+    try:
+        return client.refresh_usage(
+            account_id,
+            timeout=min(int(getattr(CFG, "chat_timeout", 120)), 180),
+        )
+    except KeyError:
+        raise HTTPException(404, "account not found") from None
 
 
 @app.get("/admin/tasks")
