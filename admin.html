@@ -1,0 +1,2197 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <title>Hark2API 控制台</title>
+  <style>
+    :root {
+      --bg: #f2f0eb;
+      --surface: #fffdf9;
+      --surface-strong: #ffffff;
+      --surface-muted: #e9e6df;
+      --ink: #20262b;
+      --muted: #717a7f;
+      --faint: #9da4a5;
+      --line: #d9d6ce;
+      --line-strong: #c9c5bb;
+      --accent: #e4683d;
+      --accent-dark: #ad472a;
+      --good: #2b8766;
+      --good-bg: #e3f1ea;
+      --warn: #aa741f;
+      --warn-bg: #f8edd7;
+      --bad: #b94f4c;
+      --bad-bg: #f8e4e1;
+      --blue: #3f718a;
+      --shadow: 0 14px 34px rgba(45, 48, 45, .07);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+    html { min-width: 320px; background: var(--bg); }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .55; }
+    :focus-visible { outline: 3px solid rgba(228, 104, 61, .3); outline-offset: 2px; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      min-height: 64px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      padding: 12px clamp(18px, 4vw, 52px);
+      background: rgba(255, 253, 249, .96);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      min-width: 184px;
+      color: var(--ink);
+      text-decoration: none;
+      font-weight: 800;
+      letter-spacing: .04em;
+      font-size: 17px;
+    }
+    .brand span { color: var(--accent); }
+    .brand small {
+      color: var(--faint);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .16em;
+    }
+    .top-state {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--faint);
+    }
+    .status-dot.good { background: var(--good); }
+    .status-dot.bad { background: var(--bad); }
+    .status-dot.warn { background: var(--warn); }
+    .top-state strong { color: var(--ink); font-size: 13px; }
+    .top-state time { color: var(--faint); font-size: 12px; }
+    .auth-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-left: auto;
+    }
+    .auth-box label {
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .auth-box input { width: min(260px, 28vw); }
+
+    .shell {
+      width: min(1440px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 34px 0 64px;
+    }
+    .page-heading {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .eyebrow {
+      margin-bottom: 5px;
+      color: var(--accent-dark);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 7px; font-size: clamp(26px, 3vw, 38px); line-height: 1.1; letter-spacing: -.02em; }
+    h2 { margin-bottom: 4px; font-size: 20px; letter-spacing: -.01em; }
+    h3 { margin-bottom: 3px; font-size: 15px; }
+    .lede { max-width: 680px; margin-bottom: 0; color: var(--muted); }
+    .heading-meta { color: var(--muted); font-size: 12px; text-align: right; }
+    .heading-meta strong { display: block; color: var(--ink); font-size: 16px; }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      margin-bottom: 24px;
+      padding-bottom: 1px;
+      border-bottom: 1px solid var(--line);
+    }
+    .tab {
+      flex: 0 0 auto;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      padding: 11px 16px 10px;
+      color: var(--muted);
+      background: transparent;
+      font-weight: 700;
+    }
+    .tab:hover { color: var(--ink); }
+    .tab.active { color: var(--accent-dark); border-color: var(--accent); }
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .panel-pad { padding: 20px; }
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+    .section-head p { margin-bottom: 0; color: var(--muted); }
+    .section-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    .button {
+      min-height: 36px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      padding: 7px 13px;
+      color: var(--ink);
+      background: var(--surface-strong);
+      font-weight: 700;
+      transition: border-color .16s ease, background .16s ease, color .16s ease;
+    }
+    .button:hover { border-color: var(--accent); color: var(--accent-dark); }
+    .button.primary { border-color: var(--accent); color: #fff; background: var(--accent); }
+    .button.primary:hover { border-color: var(--accent-dark); background: var(--accent-dark); }
+    .button.ghost { border-color: transparent; background: transparent; }
+    .button.danger { color: var(--bad); }
+    .button.small { min-height: 30px; padding: 4px 9px; font-size: 12px; }
+    .button.block { width: 100%; }
+
+    .notice {
+      display: none;
+      margin: 0 0 18px;
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--blue);
+      border-radius: 6px;
+      padding: 11px 14px;
+      color: var(--ink);
+      background: var(--surface);
+    }
+    .notice.show { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+    .notice.error { border-left-color: var(--bad); background: var(--bad-bg); }
+    .notice.success { border-left-color: var(--good); background: var(--good-bg); }
+    .notice button { border: 0; color: inherit; background: transparent; font-weight: 800; }
+
+    .overview-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); gap: 18px; }
+    .state-panel { padding: 24px; }
+    .state-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+    .state-title { display: flex; align-items: center; gap: 10px; }
+    .state-title .status-dot { width: 10px; height: 10px; }
+    .state-title h2 { margin: 0; }
+    .state-url { margin: 5px 0 0 20px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    .state-table { width: 100%; margin-top: 28px; border-collapse: collapse; }
+    .state-table th, .state-table td { padding: 11px 0; border-top: 1px solid var(--line); text-align: left; }
+    .state-table th { width: 36%; color: var(--muted); font-size: 12px; font-weight: 600; }
+    .state-table td { font-weight: 700; }
+    .state-table .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; font-weight: 500; }
+    .quick-panel { padding: 24px; }
+    .quick-panel .button { margin-top: 9px; }
+    .quick-panel p { margin-bottom: 17px; color: var(--muted); }
+    .metric-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 18px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+    }
+    .metric {
+      min-height: 112px;
+      padding: 18px 20px;
+      border-right: 1px solid var(--line);
+    }
+    .metric:last-child { border-right: 0; }
+    .metric-label { display: block; color: var(--muted); font-size: 12px; }
+    .metric strong { display: block; margin: 5px 0 2px; font-size: 28px; line-height: 1; font-variant-numeric: tabular-nums; }
+    .metric small { color: var(--faint); }
+    .overview-bottom { margin-top: 18px; }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 720px; }
+    th, td { padding: 13px 15px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+    th { color: var(--muted); background: var(--surface-muted); font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #fffaf2; }
+    .primary-cell { color: var(--ink); font-weight: 800; }
+    .sub-cell { display: block; margin-top: 2px; color: var(--muted); font-size: 12px; font-weight: 400; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; }
+    .num { font-variant-numeric: tabular-nums; }
+    .row-actions { display: flex; flex-wrap: wrap; gap: 5px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      color: var(--muted);
+      background: var(--surface-muted);
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    .badge.good { color: var(--good); background: var(--good-bg); }
+    .badge.warn { color: var(--warn); background: var(--warn-bg); }
+    .badge.bad { color: var(--bad); background: var(--bad-bg); }
+    .empty { padding: 42px 20px; color: var(--muted); text-align: center; }
+    .loading { color: var(--faint); }
+
+    .two-col { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .65fr); gap: 18px; }
+    .form-panel { padding: 20px; }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label { display: block; margin-bottom: 6px; color: var(--muted); font-size: 12px; font-weight: 800; }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      padding: 9px 10px;
+      color: var(--ink);
+      background: var(--surface-strong);
+    }
+    textarea { min-height: 100px; resize: vertical; }
+    input::placeholder, textarea::placeholder { color: #b0b4b2; }
+    .help { margin-top: 5px; color: var(--faint); font-size: 12px; }
+    .check-line { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+    .check-line input { width: auto; accent-color: var(--accent); }
+
+    .media-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+    .media-item { overflow: hidden; border: 1px solid var(--line); border-radius: 7px; background: var(--surface-strong); }
+    .media-preview { display: grid; place-items: center; aspect-ratio: 4 / 3; overflow: hidden; background: var(--surface-muted); }
+    .media-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .file-preview { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+    .media-meta { padding: 11px 12px; }
+    .media-name { overflow: hidden; color: var(--ink); font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+    .media-detail { display: flex; justify-content: space-between; gap: 8px; margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .media-actions { display: flex; gap: 7px; margin-top: 10px; }
+    .media-actions .button { flex: 1; text-align: center; text-decoration: none; }
+
+    .run-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .run-panel { padding: 20px; }
+    .run-panel h2 { margin-bottom: 16px; }
+    .run-panel .button { margin-top: 3px; }
+    .result-panel { grid-column: 1 / -1; padding: 20px; }
+    .result-status { color: var(--muted); }
+    .result-status strong { color: var(--ink); }
+    .result-output { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 16px; }
+    .result-output figure { margin: 0; border: 1px solid var(--line); background: var(--surface-strong); }
+    .result-output img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+    .result-output figcaption { padding: 8px; font-size: 12px; }
+    .result-output a { color: var(--accent-dark); font-weight: 700; text-decoration: none; }
+    .result-output a:hover { text-decoration: underline; }
+
+    dialog {
+      width: min(560px, calc(100% - 32px));
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      padding: 0;
+      color: var(--ink);
+      background: var(--surface);
+      box-shadow: 0 22px 70px rgba(30, 35, 35, .2);
+    }
+    dialog::backdrop { background: rgba(28, 31, 31, .35); }
+    .dialog-body { padding: 22px; }
+    .dialog-head { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+    .dialog-head button { border: 0; color: var(--muted); background: transparent; font-size: 20px; line-height: 1; }
+    .dialog-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+    @media (max-width: 980px) {
+      .topbar { flex-wrap: wrap; gap: 12px 18px; }
+      .auth-box { width: 100%; margin-left: 0; }
+      .auth-box input { flex: 1; width: auto; }
+      .overview-grid, .two-col { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 700px) {
+      .shell { width: min(100% - 24px, 1440px); padding-top: 24px; }
+      .page-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
+      .heading-meta { text-align: left; }
+      .metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric:nth-child(2) { border-right: 0; }
+      .metric:nth-child(-n + 2) { border-bottom: 1px solid var(--line); }
+      .state-panel, .quick-panel, .form-panel, .run-panel, .result-panel { padding: 16px; }
+      .section-head { align-items: flex-start; flex-direction: column; }
+      .section-actions { justify-content: flex-start; }
+      .run-grid { grid-template-columns: 1fr; }
+      .result-panel { grid-column: auto; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+    }
+
+    /* Keep the console quiet and operational instead of decorative. */
+    :root {
+      --bg: #f4f6f7;
+      --surface: #ffffff;
+      --surface-strong: #ffffff;
+      --surface-muted: #f1f3f5;
+      --ink: #1d2933;
+      --muted: #66737d;
+      --faint: #8d99a2;
+      --line: #dfe5e8;
+      --line-strong: #c8d1d6;
+      --accent: #d45d37;
+      --accent-dark: #a94023;
+      --accent-soft: #fff0ea;
+      --good: #217b59;
+      --good-bg: #e6f4ed;
+      --warn: #956719;
+      --warn-bg: #fff4da;
+      --bad: #ad3c3c;
+      --bad-bg: #ffeded;
+      --blue: #2f6f91;
+      --shadow: 0 1px 2px rgba(26, 39, 48, .04);
+      --radius: 6px;
+    }
+
+    body { background: var(--bg); letter-spacing: 0; }
+    h1, h2, h3, .brand, .brand small, .eyebrow, th { letter-spacing: 0; }
+    h1 { font-size: clamp(26px, 2.4vw, 34px); }
+    h2 { font-size: 19px; }
+    .topbar {
+      min-height: 60px;
+      padding: 10px clamp(16px, 3vw, 40px);
+      background: rgba(255, 255, 255, .98);
+      border-bottom-color: var(--line);
+      backdrop-filter: none;
+    }
+    .brand { min-width: 170px; font-size: 16px; }
+    .brand small { color: var(--muted); font-size: 10px; }
+    .auth-box input { width: min(250px, 26vw); }
+    .shell { width: min(1380px, calc(100% - 48px)); padding-top: 28px; }
+    .page-heading { margin-bottom: 18px; }
+    .eyebrow { color: var(--muted); font-size: 11px; text-transform: none; }
+    .lede { color: var(--muted); }
+    .tabs { gap: 0; margin-bottom: 20px; }
+    .tab { border-radius: 0; padding: 10px 14px; }
+    .tab.active { color: var(--accent-dark); background: var(--accent-soft); }
+    .panel { box-shadow: var(--shadow); }
+    .button { min-height: 38px; border-radius: 5px; transition: border-color .16s ease, background .16s ease, color .16s ease, box-shadow .16s ease; }
+    .button.primary { box-shadow: 0 1px 2px rgba(169, 64, 35, .14); }
+    input, textarea, select { border-radius: 5px; }
+    th { background: var(--surface-muted); text-transform: none; }
+    .metric-strip { overflow: hidden; margin-top: 16px; border-radius: var(--radius); }
+    .metric { min-height: 104px; }
+    .badge { border-radius: 999px; }
+
+    @media (min-width: 1100px) {
+      .shell {
+        display: grid;
+        grid-template-columns: 176px minmax(0, 1fr);
+        column-gap: 36px;
+        align-items: start;
+      }
+      .page-heading, .notice, .view { grid-column: 2; }
+      .page-heading { grid-row: 1; }
+      .tabs {
+        grid-column: 1;
+        grid-row: 1 / span 4;
+        position: sticky;
+        top: 82px;
+        display: grid;
+        align-content: start;
+        gap: 2px;
+        margin: 0;
+        padding: 5px 0;
+        border: 0;
+      }
+      .tab {
+        width: 100%;
+        border: 0;
+        border-left: 2px solid transparent;
+        padding: 11px 14px;
+        color: var(--muted);
+        text-align: left;
+      }
+      .tab:hover { background: var(--surface-muted); }
+      .tab.active { border-left-color: var(--accent); color: var(--accent-dark); background: var(--accent-soft); }
+      .notice { grid-row: 2; }
+      .view { grid-row: 3; }
+    }
+
+    @media (max-width: 1099px) {
+      .shell { width: min(100% - 32px, 1380px); }
+    }
+
+    @media (max-width: 700px) {
+      .topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px 12px;
+        padding: 12px 16px;
+      }
+      .brand { grid-column: 1; grid-row: 1; min-width: 0; font-size: 15px; }
+      .auth-box { grid-column: 2; grid-row: 1; width: auto; margin-left: 0; gap: 6px; }
+      .auth-box label { display: none; }
+      .auth-box input { width: min(158px, 42vw); min-width: 0; }
+      .top-state { grid-column: 1 / -1; grid-row: 2; }
+      .shell { width: calc(100% - 24px); padding-top: 20px; }
+      .page-heading { margin-bottom: 16px; }
+      .page-heading h1 { font-size: 28px; }
+      .tabs { margin-right: -12px; margin-bottom: 18px; }
+      .tab { padding: 10px 13px; font-size: 13px; }
+      .state-panel, .quick-panel, .form-panel, .run-panel, .result-panel { padding: 18px; }
+      .metric { padding: 16px; }
+    }
+  </style>
+  <style id="taste-redesign">
+    /* Taste redesign: quiet utility console, one accent, restrained motion. */
+    :root {
+      --bg: #f6f8f9;
+      --surface: #ffffff;
+      --surface-strong: #ffffff;
+      --surface-muted: #eef2f4;
+      --surface-tint: #f9fbfb;
+      --ink: #17232b;
+      --ink-strong: #0f1a21;
+      --muted: #5f6d76;
+      --faint: #87949c;
+      --line: #d9e1e5;
+      --line-strong: #bdc9cf;
+      --accent: #d35b37;
+      --accent-dark: #a64227;
+      --accent-soft: #fff0ea;
+      --good: #1d7654;
+      --good-bg: #e5f3ec;
+      --warn: #91671b;
+      --warn-bg: #fff3d7;
+      --bad: #ad3d3d;
+      --bad-bg: #ffeded;
+      --blue: #2c6e8e;
+      --shadow: 0 1px 2px rgba(22, 35, 43, .04);
+      --radius: 6px;
+    }
+
+    html { background: var(--bg); }
+    body {
+      min-height: 100dvh;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    button, input, textarea, select { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
+    :focus-visible {
+      outline: 3px solid rgba(211, 91, 55, .24);
+      outline-offset: 2px;
+    }
+
+    .topbar {
+      min-height: 68px;
+      gap: 24px;
+      padding: 12px clamp(20px, 4vw, 56px);
+      background: rgba(255, 255, 255, .96);
+      border-bottom: 1px solid var(--line);
+      box-shadow: 0 1px 0 rgba(23, 35, 43, .02);
+      backdrop-filter: blur(14px);
+    }
+    .brand {
+      min-width: 190px;
+      color: var(--ink-strong);
+      font-size: 16px;
+      letter-spacing: .025em;
+    }
+    .brand span { color: var(--accent); }
+    .brand small {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .04em;
+    }
+    .top-state { gap: 9px; color: var(--muted); }
+    .top-state strong { color: var(--ink); font-size: 13px; }
+    .top-state time { color: var(--faint); font-size: 12px; }
+    .status-dot { width: 7px; height: 7px; }
+    .status-dot.good { background: var(--good); }
+    .status-dot.bad { background: var(--bad); }
+    .status-dot.warn { background: var(--warn); }
+    .auth-box { gap: 8px; }
+    .auth-box label { color: var(--muted); font-size: 12px; }
+    .auth-box input { width: min(236px, 25vw); }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 184px minmax(0, 1fr);
+      grid-template-rows: auto auto 1fr;
+      column-gap: clamp(28px, 4vw, 48px);
+      align-items: start;
+      width: min(1440px, calc(100% - 64px));
+      padding: 38px 0 72px;
+    }
+    .page-heading, .notice, .view { grid-column: 2; }
+    .page-heading { grid-row: 1; }
+    .notice { grid-row: 2; }
+    .view { grid-row: 3; }
+    .page-heading {
+      align-items: flex-end;
+      margin-bottom: 24px;
+      padding-bottom: 26px;
+      border-bottom: 1px solid var(--line);
+    }
+    .eyebrow {
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      margin-bottom: 8px;
+      color: var(--ink-strong);
+      font-size: clamp(28px, 3vw, 38px);
+      line-height: 1.08;
+      letter-spacing: -.025em;
+    }
+    h2 { color: var(--ink-strong); font-size: 19px; letter-spacing: -.015em; }
+    h3 { color: var(--ink-strong); font-size: 15px; }
+    .lede { max-width: 660px; color: var(--muted); }
+    .heading-meta { color: var(--muted); font-size: 12px; }
+    .heading-meta strong { color: var(--ink); font-size: 15px; }
+
+    .tabs {
+      grid-column: 1;
+      grid-row: 1 / span 4;
+      position: sticky;
+      top: 88px;
+      display: grid;
+      align-content: start;
+      gap: 3px;
+      margin: 0;
+      padding: 4px 0;
+      border: 0;
+    }
+    .tab {
+      width: 100%;
+      border: 0;
+      border-left: 2px solid transparent;
+      border-radius: 4px;
+      padding: 11px 14px;
+      color: var(--muted);
+      background: transparent;
+      font-weight: 700;
+      text-align: left;
+      transition: background .16s ease, border-color .16s ease, color .16s ease;
+    }
+    .tab:hover { color: var(--ink); background: var(--surface-muted); }
+    .tab.active {
+      border-left-color: var(--accent);
+      color: var(--accent-dark);
+      background: var(--accent-soft);
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .panel-pad { padding: 22px; }
+    .section-head { margin-bottom: 16px; }
+    .section-head p { color: var(--muted); }
+    .section-actions { gap: 7px; }
+    .button {
+      min-height: 36px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      padding: 7px 12px;
+      color: var(--ink);
+      background: var(--surface-strong);
+      font-weight: 700;
+      transition: transform .16s ease, border-color .16s ease, background .16s ease,
+        color .16s ease, box-shadow .16s ease;
+    }
+    .button:hover { border-color: var(--accent); color: var(--accent-dark); }
+    .button:active { transform: scale(.98); }
+    .button.primary {
+      border-color: var(--accent);
+      color: #fff;
+      background: var(--accent);
+      box-shadow: 0 1px 2px rgba(166, 62, 36, .16);
+    }
+    .button.primary:hover { border-color: var(--accent-dark); color: #fff; background: var(--accent-dark); }
+    .button.ghost { border-color: transparent; background: transparent; }
+    .button.danger { color: var(--bad); }
+    .button.small { min-height: 31px; padding: 5px 9px; font-size: 12px; }
+    .button.block { width: 100%; }
+
+    .notice {
+      margin-bottom: 18px;
+      border-radius: var(--radius);
+      border-left-width: 3px;
+      background: var(--surface);
+    }
+    .notice.error { background: var(--bad-bg); }
+    .notice.success { background: var(--good-bg); }
+
+    .overview-grid, .two-col { grid-template-columns: minmax(0, 1.45fr) minmax(290px, .75fr); gap: 16px; }
+    .state-panel, .quick-panel { padding: 24px; }
+    .state-top { gap: 20px; }
+    .state-title { gap: 9px; }
+    .state-title .status-dot { width: 9px; height: 9px; }
+    .state-url {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      overflow-wrap: anywhere;
+    }
+    .state-table { min-width: 0; margin-top: 24px; table-layout: fixed; }
+    .state-table th, .state-table td { padding: 11px 0; }
+    .state-table th { color: var(--muted); font-size: 12px; font-weight: 650; }
+    .state-table td { color: var(--ink); overflow-wrap: anywhere; }
+
+    .quick-panel {
+      border-color: var(--ink-strong);
+      color: #eaf0f2;
+      background: var(--ink-strong);
+    }
+    .quick-panel h2 { color: #f7fafb; }
+    .quick-panel .eyebrow, .quick-panel p { color: #aebbc1; }
+    .quick-panel .button {
+      border-color: #455761;
+      color: #edf3f5;
+      background: transparent;
+    }
+    .quick-panel .button:hover { border-color: #d7e0e3; color: #fff; background: #26353d; }
+    .quick-panel .button.primary { border-color: var(--accent); color: #fff; background: var(--accent); }
+    .quick-panel .button.primary:hover { background: var(--accent-dark); }
+
+    .metric-strip { overflow: hidden; margin-top: 16px; border-radius: var(--radius); }
+    .metric { min-height: 106px; padding: 18px 20px; }
+    .metric-label { color: var(--muted); font-size: 12px; }
+    .metric strong { margin: 6px 0 3px; color: var(--ink-strong); font-size: 27px; }
+    .metric small { color: var(--faint); }
+    .overview-bottom { margin-top: 16px; }
+
+    .table-wrap { overflow-x: auto; }
+    table { min-width: 720px; }
+    th, td { padding: 12px 15px; border-bottom-color: var(--line); }
+    th { color: var(--muted); background: var(--surface-muted); font-size: 11px; font-weight: 750; letter-spacing: .04em; text-transform: none; }
+    tbody tr:hover { background: var(--surface-tint); }
+    .primary-cell { color: var(--ink); font-weight: 750; }
+    .sub-cell { color: var(--muted); }
+    .row-actions { gap: 5px; }
+    .badge {
+      min-height: 23px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      color: var(--muted);
+      background: var(--surface-muted);
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .badge.good { color: var(--good); background: var(--good-bg); }
+    .badge.warn { color: var(--warn); background: var(--warn-bg); }
+    .badge.bad { color: var(--bad); background: var(--bad-bg); }
+    .empty { padding: 42px 20px; color: var(--muted); }
+
+    .form-panel, .run-panel, .result-panel { padding: 22px; }
+    .field { margin-bottom: 16px; }
+    .field label { margin-bottom: 7px; color: var(--ink); font-size: 12px; font-weight: 750; }
+    input, textarea, select {
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      padding: 9px 11px;
+      color: var(--ink);
+      background: var(--surface-strong);
+      transition: border-color .16s ease, box-shadow .16s ease;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(211, 91, 55, .12);
+      outline: 0;
+    }
+    input::placeholder, textarea::placeholder { color: var(--faint); }
+    textarea { min-height: 108px; }
+    .help { color: var(--muted); }
+    .check-line { color: var(--muted); }
+    .check-line input { accent-color: var(--accent); }
+
+    .media-grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+    .media-item { border-color: var(--line); border-radius: var(--radius); background: var(--surface-strong); }
+    .media-preview { background: var(--surface-muted); }
+    .media-meta { padding: 12px; }
+    .media-name { color: var(--ink); }
+    .media-detail { color: var(--muted); }
+    .media-actions { gap: 6px; }
+    .media-actions .button { flex: 1; }
+
+    .run-grid { gap: 16px; }
+    .run-panel h2 { margin-bottom: 17px; }
+    .result-output { gap: 12px; }
+    .result-output figure { border-color: var(--line); border-radius: var(--radius); overflow: hidden; background: var(--surface-strong); }
+    .result-output figcaption { padding: 9px; }
+    .result-output a { color: var(--accent-dark); }
+
+    dialog {
+      border-color: var(--line-strong);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: 0 24px 70px rgba(15, 26, 33, .2);
+    }
+    dialog::backdrop { background: rgba(15, 26, 33, .42); }
+    .dialog-body { padding: 24px; }
+    .dialog-head button { color: var(--muted); }
+
+    @keyframes taste-view-enter {
+      from { opacity: .35; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .view.active { animation: taste-view-enter .18s ease both; }
+      .button:hover { transform: translateY(-1px); }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #12191d;
+        --surface: #192227;
+        --surface-strong: #1d282e;
+        --surface-muted: #223039;
+        --surface-tint: #1e2a30;
+        --ink: #e8eef0;
+        --ink-strong: #f5f8f9;
+        --muted: #a5b2b9;
+        --faint: #7e8c94;
+        --line: #33434c;
+        --line-strong: #52636c;
+        --accent: #ed7652;
+        --accent-dark: #ff9a7c;
+        --accent-soft: #38251f;
+        --good: #70c19d;
+        --good-bg: #19382c;
+        --warn: #e1b66b;
+        --warn-bg: #3a2e19;
+        --bad: #ed9692;
+        --bad-bg: #3c2427;
+        --shadow: 0 1px 2px rgba(0, 0, 0, .22);
+      }
+      .topbar { background: rgba(18, 25, 29, .96); }
+      .button.primary { color: #29140c; }
+      .button.primary:hover { color: #29140c; }
+      .quick-panel { background: #0f1518; }
+      tbody tr:hover { background: var(--surface-tint); }
+    }
+
+    @media (max-width: 1099px) {
+      .shell { display: block; width: min(100% - 40px, 1380px); }
+      .tabs {
+        position: static;
+        display: flex;
+        overflow-x: auto;
+        gap: 3px;
+        margin: 0 0 22px;
+        padding: 0 0 1px;
+        border-bottom: 1px solid var(--line);
+      }
+      .tab {
+        flex: 0 0 auto;
+        width: auto;
+        border-left: 0;
+        border-bottom: 2px solid transparent;
+        border-radius: 4px 4px 0 0;
+        padding: 10px 14px;
+        text-align: center;
+      }
+      .tab.active { border-bottom-color: var(--accent); border-left-color: transparent; }
+      .page-heading, .notice, .view { grid-column: auto; }
+      .page-heading { margin-bottom: 20px; }
+    }
+    @media (max-width: 700px) {
+      .topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 9px 12px;
+        padding: 12px 16px;
+      }
+      .brand { grid-column: 1; grid-row: 1; min-width: 0; }
+      .auth-box { grid-column: 2; grid-row: 1; width: auto; margin-left: 0; }
+      .auth-box label { display: none; }
+      .auth-box input { width: min(154px, 41vw); min-width: 0; }
+      .top-state { grid-column: 1 / -1; grid-row: 2; }
+      .shell { width: calc(100% - 24px); padding: 24px 0 52px; }
+      .page-heading { display: block; padding-bottom: 20px; }
+      .page-heading h1 { font-size: 29px; }
+      .heading-meta { margin-top: 15px; }
+      .tabs { margin-right: -12px; margin-bottom: 18px; }
+      .tab { padding: 10px 13px; font-size: 13px; }
+      .overview-grid, .two-col, .run-grid { grid-template-columns: 1fr; }
+      .state-panel, .quick-panel, .form-panel, .run-panel, .result-panel { padding: 18px; }
+      .metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric { padding: 16px; }
+      .metric:nth-child(2) { border-right: 0; }
+      .metric:nth-child(-n + 2) { border-bottom: 1px solid var(--line); }
+      .section-head { align-items: flex-start; flex-direction: column; }
+      .section-actions { justify-content: flex-start; }
+      .result-panel { grid-column: auto; }
+      .dialog-actions { flex-wrap: wrap; }
+    }
+  </style>
+  <style id="ui-system-redesign">
+    /* UI system pass: a distinct operator workspace, not a marketing dashboard. */
+    :root {
+      --bg: #edf1f3;
+      --surface: #ffffff;
+      --surface-strong: #ffffff;
+      --surface-muted: #f1f4f5;
+      --surface-tint: #f7f9fa;
+      --ink: #18252d;
+      --ink-strong: #101b22;
+      --muted: #62717a;
+      --faint: #8b989f;
+      --line: #d7e0e4;
+      --line-strong: #b8c6cd;
+      --chrome: #17242b;
+      --chrome-soft: #22343d;
+      --chrome-line: #354a55;
+      --accent: #e0643a;
+      --accent-dark: #b84a2b;
+      --accent-soft: #fff0e9;
+      --good: #187653;
+      --good-bg: #e4f4eb;
+      --warn: #936b1c;
+      --warn-bg: #fff3d6;
+      --bad: #ad3d3d;
+      --bad-bg: #ffeded;
+      --shadow: 0 2px 7px rgba(20, 37, 46, .06);
+      --radius: 6px;
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+      --space-6: 24px;
+    }
+
+    body { background: var(--bg); color: var(--ink); }
+    .topbar {
+      z-index: 20;
+      min-height: 72px;
+      padding: 13px clamp(20px, 4vw, 56px);
+      color: #eaf1f3;
+      background: var(--chrome);
+      border-bottom: 1px solid var(--chrome-line);
+      box-shadow: 0 3px 14px rgba(17, 31, 39, .12);
+      backdrop-filter: none;
+    }
+    .brand { min-width: 190px; color: #f6fafb; }
+    .brand span { color: #f17a50; }
+    .brand small { color: #9aabb3; }
+    .top-state { color: #aebdc4; }
+    .top-state strong { color: #f1f6f7; }
+    .top-state time { color: #82959e; }
+    .status-dot { box-shadow: 0 0 0 3px rgba(255, 255, 255, .04); }
+    .auth-box label { color: #aebdc4; }
+    .auth-box input {
+      color: #eef4f5;
+      background: #22323a;
+      border-color: #4c626d;
+    }
+    .auth-box input::placeholder { color: #8ea0a8; }
+    .auth-box .button {
+      border-color: #667a84;
+      color: #f1f6f7;
+      background: transparent;
+    }
+    .auth-box .button:hover { border-color: #f17a50; color: #fff; background: #293d47; }
+
+    .shell {
+      grid-template-columns: 202px minmax(0, 1fr);
+      column-gap: clamp(24px, 3vw, 40px);
+      width: min(1480px, calc(100% - 64px));
+      padding: 32px 0 76px;
+    }
+    .tabs {
+      top: 96px;
+      gap: 4px;
+      min-height: calc(100dvh - 128px);
+      padding: 16px 10px;
+      border: 1px solid var(--chrome-line);
+      border-radius: 8px;
+      background: var(--chrome);
+      box-shadow: 0 5px 16px rgba(17, 31, 39, .08);
+    }
+    .tabs::before {
+      display: block;
+      margin: 1px 12px 14px;
+      color: #82959e;
+      content: "工作区";
+      font-size: 11px;
+      font-weight: 750;
+      letter-spacing: .12em;
+    }
+    .tab {
+      width: 100%;
+      border: 1px solid transparent;
+      border-radius: 5px;
+      padding: 12px 13px;
+      color: #aebdc4;
+      background: transparent;
+      text-align: left;
+    }
+    .tab:hover { color: #f1f6f7; background: var(--chrome-soft); }
+    .tab.active {
+      border-color: rgba(240, 122, 80, .34);
+      color: #ffb29a;
+      background: rgba(224, 100, 58, .16);
+    }
+
+    .page-heading {
+      min-height: 112px;
+      margin-bottom: 22px;
+      padding: 4px 4px 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    .page-heading .eyebrow { color: var(--accent-dark); }
+    h1 { color: var(--ink-strong); font-size: clamp(30px, 3.3vw, 42px); letter-spacing: -.035em; }
+    h2 { color: var(--ink-strong); }
+    .lede { color: var(--muted); }
+    .heading-meta {
+      min-width: 180px;
+      padding: 10px 0 2px 18px;
+      border-left: 2px solid var(--accent);
+    }
+    .heading-meta strong { color: var(--ink-strong); font-size: 15px; }
+
+    .notice { border-radius: var(--radius); box-shadow: var(--shadow); }
+    .panel { border-radius: var(--radius); box-shadow: var(--shadow); }
+    .button { min-height: 38px; border-radius: var(--radius); }
+    .button.small { min-height: 32px; }
+    .button.primary { color: #2b160e; background: var(--accent); }
+    .button.primary:hover { color: #2b160e; background: var(--accent-dark); }
+
+    .view > .section-head {
+      min-height: 70px;
+      padding: 3px 4px 17px;
+      border-bottom: 1px solid var(--line);
+    }
+    .section-head { margin-bottom: 18px; }
+    .section-head .eyebrow { color: var(--accent-dark); }
+    .section-head p { max-width: 700px; }
+
+    .overview-grid { grid-template-columns: minmax(0, 1.55fr) minmax(270px, .75fr); gap: 14px; }
+    .state-panel {
+      padding: 24px;
+      border-top: 3px solid var(--good);
+    }
+    .state-top { align-items: center; }
+    .state-title { gap: 10px; }
+    .state-title h2 { font-size: 21px; }
+    .state-url { margin-left: 19px; color: var(--faint); }
+    .state-table { margin-top: 22px; }
+    .state-table th {
+      width: 34%;
+      color: var(--muted);
+      background: var(--surface-muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .state-table th, .state-table td { padding: 12px 10px; border-top: 1px solid var(--line); }
+    .state-table td { color: var(--ink-strong); }
+    .quick-panel {
+      border: 1px solid var(--chrome-line);
+      border-top: 3px solid var(--accent);
+      background: var(--chrome);
+    }
+    .quick-panel .eyebrow { color: #9eb0b8; }
+    .quick-panel h2 { color: #f6fafb; font-size: 21px; }
+    .quick-panel p { color: #afbec4; }
+    .quick-panel .button { border-color: #4d626d; color: #edf4f5; background: transparent; }
+    .quick-panel .button:hover { border-color: #b7c8ce; color: #fff; background: var(--chrome-soft); }
+    .quick-panel .button.primary { border-color: var(--accent); color: #2b160e; background: var(--accent); }
+
+    .metric-strip {
+      display: grid;
+      gap: 12px;
+      overflow: visible;
+      margin-top: 14px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+    .metric {
+      min-height: 102px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .metric:not(:last-child) { border-right: 1px solid var(--line); }
+    .metric-label { color: var(--muted); }
+    .metric strong { color: var(--ink-strong); font-size: 30px; }
+    .overview-bottom { margin-top: 14px; }
+
+    .table-wrap { border-radius: var(--radius); }
+    .panel > .table-wrap { border-radius: var(--radius); }
+    table { min-width: 720px; }
+    th { background: var(--surface-muted); color: var(--muted); }
+    td { background: var(--surface); }
+    tbody tr:hover td { background: var(--surface-tint); }
+    .row-actions .button { min-height: 32px; }
+
+    .media-grid { gap: 14px; }
+    .media-item { border-radius: var(--radius); box-shadow: var(--shadow); }
+    .media-preview { aspect-ratio: 5 / 4; }
+    .media-actions .button { min-height: 34px; }
+    .form-panel, .run-panel, .result-panel { border-top: 3px solid var(--line-strong); }
+    .run-panel:focus-within { border-top-color: var(--accent); }
+    .run-panel h2 { font-size: 21px; }
+    .result-panel { border-top-color: var(--good); }
+
+    dialog { border-radius: 8px; box-shadow: 0 24px 76px rgba(17, 31, 39, .28); }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #10181d;
+        --surface: #19242a;
+        --surface-strong: #1e2b32;
+        --surface-muted: #223239;
+        --surface-tint: #202f36;
+        --ink: #e7eef0;
+        --ink-strong: #f5f8f9;
+        --muted: #a4b2b9;
+        --faint: #7f9098;
+        --line: #34474f;
+        --line-strong: #526872;
+        --chrome: #0d151a;
+        --chrome-soft: #1c2c34;
+        --chrome-line: #30464f;
+        --accent: #ed7953;
+        --accent-dark: #ff9b7b;
+        --accent-soft: #3b251f;
+        --good: #72c8a0;
+        --good-bg: #1b3a2d;
+        --shadow: 0 2px 8px rgba(0, 0, 0, .25);
+      }
+      .topbar { background: var(--chrome); }
+      .auth-box input { color: var(--ink); background: var(--surface-strong); }
+      .heading-meta { border-left-color: var(--accent); }
+      .state-table th { background: var(--surface-muted); }
+      .state-table td, td { background: var(--surface); }
+      tbody tr:hover td { background: var(--surface-tint); }
+      .quick-panel { background: var(--chrome); }
+      .button.primary { color: #2b160e; }
+      .button.primary:hover { color: #2b160e; }
+    }
+
+    @media (max-width: 1099px) {
+      .shell { width: min(100% - 40px, 1380px); }
+      .tabs {
+        min-height: 0;
+        padding: 10px 8px 8px;
+        border-radius: var(--radius);
+        background: var(--chrome);
+      }
+      .tabs::before { display: none; }
+      .tab {
+        flex: 0 0 auto;
+        width: auto;
+        border-color: transparent;
+        color: #aebdc4;
+        text-align: center;
+      }
+      .tab.active { border-color: rgba(240, 122, 80, .34); }
+      .view > .section-head { min-height: 0; }
+    }
+    @media (max-width: 700px) {
+      .topbar { min-height: 78px; }
+      .auth-box input { width: min(154px, 41vw); }
+      .shell { width: calc(100% - 24px); padding-top: 22px; }
+      .page-heading { min-height: 0; padding-bottom: 21px; }
+      .heading-meta { margin-top: 17px; padding-left: 14px; }
+      .tabs { margin-right: -12px; }
+      .overview-grid, .two-col, .run-grid { grid-template-columns: 1fr; }
+      .state-panel, .quick-panel, .form-panel, .run-panel, .result-panel { padding: 18px; }
+      .metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric { min-height: 98px; padding: 15px; }
+      .metric:nth-child(2) { border-right: 1px solid var(--line); }
+      .metric:nth-child(-n + 2) { border-bottom: 1px solid var(--line); }
+      .state-table { width: 100%; min-width: 0; }
+      .state-table th, .state-table td { padding: 11px 8px; }
+    }
+  </style>
+  <style id="bold-modern-redesign">
+    /* Bold modern pass: editorial workspace, flat color fields, no admin chrome. */
+    :root {
+      --bg: #e9e3d8;
+      --surface: #f8f5ee;
+      --surface-strong: #fcfaf5;
+      --surface-muted: #dcebed;
+      --surface-tint: #f1eee5;
+      --ink: #263b3e;
+      --ink-strong: #1d3033;
+      --muted: #647578;
+      --faint: #8b9a9b;
+      --line: #c2d0d0;
+      --line-strong: #9eb2b4;
+      --chrome: #cfe5e6;
+      --chrome-soft: #b9d8da;
+      --chrome-line: #9fbfc1;
+      --accent: #ee6a46;
+      --accent-dark: #c74d32;
+      --accent-soft: #f8c5b3;
+      --signal-blue: #c9dff0;
+      --signal-lime: #dce8ad;
+      --signal-lilac: #d9d2ec;
+      --good: #188263;
+      --good-bg: #cde7d7;
+      --warn: #9b6e17;
+      --warn-bg: #f2dfaa;
+      --bad: #b64a43;
+      --bad-bg: #f3c8c1;
+      --shadow: 0 8px 0 rgba(38, 59, 62, .08);
+      --radius: 0;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      background-color: var(--bg);
+      color: var(--ink);
+      font-family: "Avenir Next", "Segoe UI Variable", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    body::before {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background-image: linear-gradient(90deg, rgba(38, 59, 62, .035) 1px, transparent 1px),
+        linear-gradient(rgba(38, 59, 62, .035) 1px, transparent 1px);
+      background-size: 48px 48px;
+      content: "";
+      pointer-events: none;
+    }
+
+    .topbar {
+      min-height: 78px;
+      padding: 15px clamp(20px, 4vw, 58px);
+      color: var(--ink);
+      background: var(--chrome);
+      border: 0;
+      border-bottom: 5px solid var(--accent);
+      box-shadow: none;
+      backdrop-filter: none;
+    }
+    .brand {
+      min-width: 206px;
+      color: var(--ink-strong);
+      font-size: 18px;
+      letter-spacing: .025em;
+    }
+    .brand span { color: var(--accent-dark); }
+    .brand small { color: var(--muted); letter-spacing: .04em; }
+    .top-state { color: var(--muted); }
+    .top-state strong { color: var(--ink-strong); }
+    .top-state time { color: var(--muted); }
+    .status-dot { box-shadow: none; }
+    .auth-box label { color: var(--muted); }
+    .auth-box input {
+      color: var(--ink);
+      background: rgba(252, 250, 245, .6);
+      border-color: var(--line-strong);
+      border-radius: 0;
+    }
+    .auth-box input::placeholder { color: var(--muted); }
+    .auth-box .button {
+      border-color: var(--ink);
+      color: var(--ink-strong);
+      background: transparent;
+      border-radius: 0;
+    }
+    .auth-box .button:hover { color: var(--surface-strong); background: var(--ink); }
+
+    .shell {
+      grid-template-columns: 138px minmax(0, 1fr);
+      column-gap: clamp(26px, 5vw, 76px);
+      width: min(1500px, calc(100% - 72px));
+      padding: 44px 0 84px;
+    }
+    .tabs {
+      top: 112px;
+      min-height: 0;
+      padding: 12px 0;
+      overflow: visible;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+    .tabs::before {
+      display: none;
+    }
+    .tabs::after {
+      display: none;
+    }
+    .tab {
+      position: relative;
+      width: 100%;
+      min-height: 43px;
+      border: 0;
+      border-radius: 0;
+      padding: 10px 0;
+      color: var(--muted);
+      background: transparent;
+      font-size: 13px;
+      font-weight: 750;
+      text-align: left;
+      transition: color .18s ease, transform .18s ease;
+    }
+    .tab::after {
+      position: absolute;
+      top: 50%;
+      right: 0;
+      width: 0;
+      height: 2px;
+      background: var(--accent);
+      content: "";
+      transition: width .18s ease;
+    }
+    .tab:hover { color: var(--ink-strong); background: transparent; }
+    .tab.active {
+      border: 0;
+      color: var(--accent-dark);
+      background: transparent;
+    }
+    .tab.active::after { width: 34px; }
+
+    .page-heading {
+      min-height: 192px;
+      align-items: flex-end;
+      margin-bottom: 32px;
+      padding: 0 0 30px;
+      border-bottom: 2px solid var(--ink);
+    }
+    .page-heading .eyebrow { color: var(--accent-dark); letter-spacing: .13em; }
+    h1 {
+      max-width: 720px;
+      margin-bottom: 11px;
+      color: var(--ink-strong);
+      font-size: clamp(42px, 6vw, 76px);
+      font-weight: 850;
+      letter-spacing: -.06em;
+      line-height: .94;
+    }
+    .lede { max-width: 620px; color: var(--muted); font-size: 16px; }
+    .heading-meta {
+      min-width: 206px;
+      padding: 0 0 1px 20px;
+      border: 0;
+      border-left: 5px solid var(--accent);
+    }
+    .heading-meta strong { color: var(--ink-strong); font-size: 18px; }
+    .heading-meta span { color: var(--muted); }
+
+    .notice { border: 0; border-left: 5px solid var(--accent); border-radius: 0; box-shadow: var(--shadow); }
+    .panel {
+      border: 2px solid var(--ink);
+      border-radius: 0;
+      box-shadow: var(--shadow);
+    }
+    .button {
+      min-height: 40px;
+      border: 2px solid var(--ink);
+      border-radius: 0;
+      padding: 7px 13px;
+      color: var(--ink-strong);
+      background: transparent;
+      font-weight: 800;
+    }
+    .button:hover { border-color: var(--accent-dark); color: var(--accent-dark); background: var(--accent-soft); }
+    .button:active { transform: translate(2px, 2px); }
+    .button.primary {
+      border-color: var(--ink);
+      color: var(--surface-strong);
+      background: var(--ink);
+      box-shadow: 3px 3px 0 var(--accent);
+    }
+    .button.primary:hover { border-color: var(--ink); color: var(--surface-strong); background: var(--accent-dark); }
+    .button.danger { color: var(--bad); border-color: var(--bad); }
+    .button.small { min-height: 32px; padding: 5px 9px; border-width: 1px; }
+
+    .view > .section-head {
+      min-height: 72px;
+      margin-bottom: 24px;
+      padding: 0 0 19px;
+      border-bottom: 0;
+    }
+    .section-head .eyebrow { color: var(--accent-dark); }
+    .section-head p { color: var(--muted); }
+    .section-actions { gap: 8px; }
+
+    .overview-grid { grid-template-columns: minmax(0, 1.55fr) minmax(280px, .7fr); gap: 20px; }
+    .state-panel {
+      position: relative;
+      min-height: 380px;
+      overflow: hidden;
+      padding: 28px;
+      border: 0;
+      border-top: 10px solid var(--good);
+      background: var(--surface);
+      box-shadow: 10px 10px 0 var(--signal-blue);
+    }
+    .state-panel::after {
+      position: absolute;
+      right: -24px;
+      bottom: -52px;
+      width: 230px;
+      height: 230px;
+      border: 1px solid rgba(38, 59, 62, .15);
+      border-radius: 50%;
+      content: "";
+      box-shadow: 0 0 0 26px rgba(38, 59, 62, .035), 0 0 0 52px rgba(38, 59, 62, .025);
+      pointer-events: none;
+    }
+    .state-top { position: relative; z-index: 1; align-items: center; }
+    .state-title { gap: 10px; }
+    .state-title h2 { font-size: 27px; letter-spacing: -.04em; }
+    .state-title .status-dot { width: 11px; height: 11px; }
+    .state-url { margin-left: 21px; color: var(--faint); }
+    .state-table { position: relative; z-index: 1; margin-top: 34px; }
+    .state-table th, .state-table td { padding: 13px 10px; border-top: 1px solid var(--line); }
+    .state-table th { width: 32%; color: var(--muted); background: rgba(220, 235, 237, .55); font-size: 12px; }
+    .state-table td { color: var(--ink-strong); background: transparent; }
+    .quick-panel {
+      position: relative;
+      min-height: 380px;
+      overflow: hidden;
+      padding: 28px;
+      border: 0;
+      border-top: 10px solid var(--accent);
+      background: var(--signal-lilac);
+      box-shadow: 10px 10px 0 var(--accent-soft);
+    }
+    .quick-panel::after {
+      position: absolute;
+      right: -48px;
+      bottom: -58px;
+      width: 190px;
+      height: 190px;
+      border: 22px solid rgba(255, 255, 255, .22);
+      border-radius: 50%;
+      content: "";
+      pointer-events: none;
+    }
+    .quick-panel > * { position: relative; z-index: 1; }
+    .quick-panel .eyebrow { color: var(--accent-dark); }
+    .quick-panel h2 { color: var(--ink-strong); font-size: 27px; letter-spacing: -.04em; }
+    .quick-panel p { color: var(--muted); }
+    .quick-panel .button { border-color: var(--ink); color: var(--ink-strong); background: transparent; }
+    .quick-panel .button:hover { border-color: var(--ink); color: var(--surface-strong); background: var(--ink); }
+    .quick-panel .button.primary { border-color: var(--ink); color: var(--surface-strong); background: var(--ink); }
+    .quick-panel .button.primary:hover { background: var(--accent-dark); }
+
+    .metric-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0;
+      overflow: visible;
+      margin-top: 29px;
+      border-top: 2px solid var(--ink);
+      border-bottom: 2px solid var(--ink);
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+    .metric {
+      min-height: 128px;
+      padding: 19px 18px;
+      border: 0;
+      border-right: 1px solid var(--line-strong);
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+    .metric:last-child { border-right: 0; }
+    .metric:nth-child(1) { background: rgba(248, 197, 179, .72); }
+    .metric:nth-child(2) { background: rgba(220, 232, 173, .68); }
+    .metric:nth-child(3) { background: rgba(201, 223, 240, .68); }
+    .metric:nth-child(4) { background: rgba(217, 210, 236, .68); }
+    .metric-label { color: var(--ink); font-size: 12px; font-weight: 700; }
+    .metric strong { margin: 8px 0 4px; color: var(--ink-strong); font-size: 39px; font-weight: 850; letter-spacing: -.07em; }
+    .metric small { color: var(--muted); }
+    .overview-bottom {
+      margin-top: 29px;
+      padding: 0;
+      border: 0;
+      border-top: 2px solid var(--ink);
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+    }
+    .overview-bottom .section-head { margin: 0; padding: 18px 0 10px; }
+
+    .panel > .table-wrap { overflow-x: auto; }
+    table { min-width: 720px; }
+    th, td { padding: 14px 15px; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); background: var(--surface-muted); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+    td { background: var(--surface); }
+    tbody tr:hover td { background: var(--surface-tint); }
+    .badge { border-radius: 999px; padding: 4px 9px; color: var(--ink); background: var(--surface-muted); }
+    .badge.good { color: var(--good); background: var(--good-bg); }
+    .badge.warn { color: var(--warn); background: var(--warn-bg); }
+    .badge.bad { color: var(--bad); background: var(--bad-bg); }
+
+    .media-grid { gap: 18px; }
+    .media-item { border: 0; border-radius: 0; background: var(--surface); box-shadow: 8px 8px 0 var(--signal-lime); }
+    .media-preview { aspect-ratio: 4 / 3; background: var(--surface-muted); }
+    .media-meta { padding: 14px; }
+    .media-name { color: var(--ink-strong); }
+    .media-actions .button { min-height: 34px; }
+    .form-panel, .run-panel, .result-panel { padding: 26px; border: 0; border-top: 9px solid var(--ink); border-radius: 0; box-shadow: 8px 8px 0 var(--signal-blue); }
+    .run-panel:focus-within { border-top-color: var(--accent); }
+    .run-panel h2, .result-panel h2 { font-size: 27px; letter-spacing: -.04em; }
+    .result-panel { border-top-color: var(--good); box-shadow: 8px 8px 0 var(--signal-lime); }
+    input, textarea, select { border: 2px solid var(--line-strong); border-radius: 0; background: var(--surface-strong); }
+    input:focus, textarea:focus, select:focus { border-color: var(--accent); box-shadow: 4px 4px 0 var(--accent-soft); }
+    .field label { color: var(--ink-strong); }
+    .help { color: var(--muted); }
+
+    dialog { border: 2px solid var(--ink); border-radius: 0; box-shadow: 12px 12px 0 var(--accent); }
+    dialog::backdrop { background: rgba(38, 59, 62, .35); }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1d2e31;
+        --surface: #f2eee5;
+        --surface-strong: #faf7ef;
+        --surface-muted: #d4e6e6;
+        --surface-tint: #e8e4d9;
+        --ink: #20383b;
+        --ink-strong: #172e31;
+        --muted: #597071;
+        --faint: #748889;
+        --line: #b6caca;
+        --line-strong: #8eacad;
+        --chrome: #a8d0d0;
+        --chrome-soft: #8dbabb;
+        --chrome-line: #78a6a8;
+        --accent: #f17b54;
+        --accent-dark: #bd452e;
+        --accent-soft: #f5b9a3;
+        --good: #137456;
+        --good-bg: #bfe2cc;
+        --shadow: 0 8px 0 rgba(7, 25, 27, .2);
+      }
+      body::before { opacity: .5; }
+    }
+
+    @media (max-width: 1099px) {
+      .shell { width: min(100% - 40px, 1380px); }
+      .tabs {
+        min-height: 0;
+        margin-bottom: 31px;
+        padding: 11px 0 8px;
+        overflow-x: auto;
+        border-top: 2px solid var(--ink);
+        border-bottom: 2px solid var(--ink);
+        background: transparent;
+      }
+      .tabs::before, .tabs::after { display: none; }
+      .tab { flex: 0 0 auto; width: auto; min-height: 40px; padding: 9px 15px; text-align: center; }
+      .tab::after { right: 15px; left: 15px; top: auto; bottom: 0; width: 0; }
+      .tab.active::after { width: calc(100% - 30px); }
+      .page-heading { min-height: 0; }
+    }
+    @media (max-width: 700px) {
+      .topbar { min-height: 82px; padding: 12px 16px; }
+      .brand { min-width: 0; font-size: 16px; }
+      .brand small { display: none; }
+      .auth-box input { width: min(154px, 41vw); }
+      .shell { width: calc(100% - 24px); padding: 28px 0 58px; }
+      .page-heading { display: block; padding-bottom: 23px; }
+      h1 { font-size: 46px; }
+      .lede { font-size: 14px; }
+      .heading-meta { margin-top: 20px; padding-left: 15px; }
+      .tabs { margin-right: -12px; }
+      .overview-grid, .two-col, .run-grid { grid-template-columns: 1fr; }
+      .state-panel, .quick-panel, .form-panel, .run-panel, .result-panel { min-height: 0; padding: 20px; }
+      .state-panel, .quick-panel { box-shadow: 6px 6px 0 var(--signal-blue); }
+      .quick-panel { box-shadow: 6px 6px 0 var(--accent-soft); }
+      .metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 24px; }
+      .metric { min-height: 108px; padding: 15px; border-bottom: 1px solid var(--line-strong); }
+      .metric:nth-child(2) { border-right: 0; }
+      .metric strong { font-size: 31px; }
+      .overview-bottom { margin-top: 24px; }
+      .state-table { min-width: 0; margin-top: 24px; }
+      .state-table th, .state-table td { padding: 11px 8px; }
+    }
+  </style>
+  <style id="open-source-console-polish">
+    /* Product pass: keep the shell focused on navigation, work, and project links. */
+    .topbar {
+      min-height: 64px;
+      padding: 12px clamp(18px, 4vw, 56px);
+    }
+    .brand { min-width: 0; }
+    .brand small, .top-state, .auth-box { display: none; }
+    .top-links {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-left: auto;
+    }
+    .top-link {
+      border: 0;
+      border-bottom: 1px solid transparent;
+      padding: 5px 0;
+      color: var(--muted);
+      background: transparent;
+      font-size: 13px;
+      font-weight: 750;
+      text-decoration: none;
+    }
+    .top-link:hover {
+      border-bottom-color: var(--accent);
+      color: var(--accent-dark);
+    }
+    .mobile-view-select { display: none; }
+
+    @media (min-width: 1100px) {
+      .shell { grid-template-rows: auto 1fr; }
+      .tabs { top: 96px; grid-row: 1 / span 2; }
+      .notice { grid-row: 1; }
+      .view { grid-row: 2; }
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(260px, .95fr);
+      gap: 16px;
+    }
+    .settings-panel, .community-panel { padding: 24px; }
+    .settings-panel h2, .community-panel h2 { margin-bottom: 10px; }
+    .settings-panel .field { margin-top: 22px; }
+    .settings-actions { display: flex; gap: 8px; margin-top: 20px; }
+    .community-panel img {
+      display: block;
+      width: min(100%, 260px);
+      aspect-ratio: 1;
+      margin: 20px auto 0;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+    .community-id {
+      margin: 14px 0 0;
+      color: var(--ink-strong);
+      font-weight: 800;
+      text-align: center;
+    }
+
+    @media (max-width: 1099px) {
+      .shell { width: min(100% - 32px, 1380px); }
+      .tabs {
+        display: block;
+        overflow: visible;
+        margin: 0 0 20px;
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+      }
+      .tabs .tab { display: none; }
+      .mobile-view-select {
+        display: block;
+        min-height: 42px;
+        border-color: var(--line-strong);
+        background: var(--surface-strong);
+        font-weight: 750;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .settings-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 700px) {
+      .topbar {
+        display: flex;
+        min-height: 60px;
+        gap: 12px;
+        padding: 10px 16px;
+      }
+      .brand { font-size: 15px; }
+      .top-links { gap: 12px; }
+      .top-link { font-size: 12px; }
+      .shell { width: calc(100% - 24px); padding: 18px 0 52px; }
+      .tabs { margin-right: 0; }
+      .settings-panel, .community-panel { padding: 18px; }
+      .community-panel img { width: min(100%, 230px); }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">HARK<span>2API</span></a>
+    <nav class="top-links" aria-label="项目链接">
+      <a class="top-link" href="https://github.com/jyao0708/hark2api" target="_blank" rel="noreferrer">GitHub</a>
+      <button class="top-link" type="button" data-go="settings" data-focus="community">QQ群 1124104343</button>
+    </nav>
+  </header>
+
+  <main class="shell">
+    <nav class="tabs" aria-label="控制台导航">
+      <button class="tab active" type="button" data-view="overview">总览</button>
+      <button class="tab" type="button" data-view="accounts">账号池</button>
+      <button class="tab" type="button" data-view="tasks">任务</button>
+      <button class="tab" type="button" data-view="media">媒体</button>
+      <button class="tab" type="button" data-view="run">试运行</button>
+      <button class="tab" type="button" data-view="settings">设置</button>
+      <select id="viewSelect" class="mobile-view-select" aria-label="选择控制台页面">
+        <option value="overview">总览</option>
+        <option value="accounts">账号池</option>
+        <option value="tasks">任务</option>
+        <option value="media">媒体</option>
+        <option value="run">试运行</option>
+        <option value="settings">设置</option>
+      </select>
+    </nav>
+
+    <div id="notice" class="notice" role="status"><span id="noticeText"></span><button id="closeNotice" type="button" aria-label="关闭">关闭</button></div>
+
+    <section id="view-overview" class="view active">
+      <div class="overview-grid">
+        <section class="panel state-panel">
+          <div class="state-top">
+            <div>
+              <div class="state-title"><span id="overviewDot" class="status-dot"></span><h2>运行状态</h2></div>
+            </div>
+            <button id="refreshAll" class="button small" type="button">刷新</button>
+          </div>
+          <table class="state-table">
+            <tbody>
+              <tr><th>上游</th><td id="upstreamState" class="mono">--</td></tr>
+              <tr><th>会话 Cookie</th><td id="cookieState">读取中</td></tr>
+              <tr><th>API Key</th><td id="keyState">--</td></tr>
+              <tr><th>媒体存储</th><td id="mediaState">读取中</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="panel quick-panel">
+          <div class="eyebrow">快捷操作</div>
+          <h2>常用操作</h2>
+          <p>直接进入需要处理的运行面板。</p>
+          <button class="button primary block" type="button" data-go="run">开始图片试运行</button>
+          <button class="button block" type="button" data-go="accounts">管理账号池</button>
+          <button class="button block" type="button" data-go="media">查看媒体文件</button>
+        </section>
+      </div>
+
+      <div class="panel metric-strip" aria-label="关键指标">
+        <div class="metric"><span class="metric-label">账号总数</span><strong id="metricAccounts">--</strong><small id="metricAccountsMeta">--</small></div>
+        <div class="metric"><span class="metric-label">健康账号</span><strong id="metricHealthy">--</strong><small id="metricHealthyMeta">认证状态</small></div>
+        <div class="metric"><span class="metric-label">任务记录</span><strong id="metricTasks">--</strong><small id="metricTasksMeta">最近 50 条</small></div>
+        <div class="metric"><span class="metric-label">媒体文件</span><strong id="metricMedia">--</strong><small id="metricMediaMeta">--</small></div>
+      </div>
+
+      <section class="panel panel-pad overview-bottom">
+        <div class="section-head">
+          <div><div class="eyebrow">近期活动</div><h2>最近任务</h2></div>
+          <button class="button small" type="button" data-go="tasks">查看全部</button>
+        </div>
+        <div id="recentTasks" class="table-wrap"><div class="empty loading">读取中</div></div>
+      </section>
+    </section>
+
+    <section id="view-accounts" class="view">
+      <div class="section-head">
+        <div><div class="eyebrow">账号管理</div><h2>账号池</h2><p>认证失败时自动切换到其他启用账号。</p></div>
+        <div class="section-actions"><button id="refreshAccounts" class="button small" type="button">刷新</button><button id="addAccount" class="button primary small" type="button">添加账号</button></div>
+      </div>
+      <section class="panel">
+        <div id="accountTable" class="table-wrap"><div class="empty loading">读取中</div></div>
+      </section>
+    </section>
+
+    <section id="view-tasks" class="view">
+      <div class="section-head">
+        <div><div class="eyebrow">任务队列</div><h2>任务记录</h2><p>异步图片任务保存在本地，服务重启中的任务会标记为失败。</p></div>
+        <div class="section-actions"><button id="refreshTasks" class="button small" type="button">刷新</button><button id="clearTasks" class="button danger small" type="button">清理已结束任务</button></div>
+      </div>
+      <section class="panel">
+        <div id="taskTable" class="table-wrap"><div class="empty loading">读取中</div></div>
+      </section>
+    </section>
+
+    <section id="view-media" class="view">
+      <div class="section-head">
+        <div><div class="eyebrow">媒体存储</div><h2>媒体文件</h2><p>生成结果保存在本地媒体目录，并由 API 提供访问地址。</p></div>
+        <div class="section-actions"><button id="refreshMedia" class="button small" type="button">刷新</button></div>
+      </div>
+      <div class="two-col">
+        <section class="panel panel-pad"><div id="mediaGrid" class="media-grid"><div class="empty loading">读取中</div></div></section>
+        <section class="panel form-panel">
+          <div class="eyebrow">存储维护</div>
+          <h2>媒体清理</h2>
+          <p class="help">按文件修改时间清理旧文件。试运行不会删除内容。</p>
+          <form id="cleanupForm">
+            <div class="field"><label for="cleanupAge">保留最近多少天</label><input id="cleanupAge" type="number" min="1" value="7" required></div>
+            <label class="check-line"><input id="cleanupDryRun" type="checkbox" checked> 仅预览，不删除</label>
+            <button class="button primary block" type="submit" style="margin-top:16px">执行清理</button>
+          </form>
+          <div id="cleanupResult" class="help" aria-live="polite"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="view-run" class="view">
+      <div class="section-head">
+        <div><div class="eyebrow">图片工作台</div><h2>图片试运行</h2><p>只调用 Hark 当前已确认的文生图和参考图编辑能力。</p></div>
+      </div>
+      <div class="run-grid">
+        <form id="generationForm" class="panel run-panel">
+          <h2>文生图</h2>
+          <div class="field"><label for="generationPrompt">提示词</label><textarea id="generationPrompt" required placeholder="例如：一座带完整室内结构的像素风木屋"></textarea></div>
+          <button class="button primary block" type="submit">提交图片任务</button>
+        </form>
+        <form id="editForm" class="panel run-panel">
+          <h2>图片编辑</h2>
+          <div class="field"><label for="editPrompt">编辑要求</label><textarea id="editPrompt" required placeholder="例如：保留构图，改成蓝绿色调并移除文字"></textarea></div>
+          <div class="field"><label for="editImage">参考图片</label><input id="editImage" type="file" accept="image/*" required></div>
+          <button class="button primary block" type="submit">提交编辑任务</button>
+        </form>
+        <section class="panel result-panel" aria-live="polite">
+          <div class="section-head"><div><div class="eyebrow">输出结果</div><h2>运行结果</h2></div><span id="runStatus" class="badge">等待任务</span></div>
+          <div id="runResult" class="result-status">提交任务后，结果会显示在这里。</div>
+        </section>
+      </div>
+    </section>
+
+    <section id="view-settings" class="view">
+      <div class="section-head">
+        <div><div class="eyebrow">访问配置</div><h2>设置</h2><p>管理当前浏览器会话使用的 API Key，并查看项目社区入口。</p></div>
+      </div>
+      <div class="settings-grid">
+        <section class="panel settings-panel">
+          <div class="eyebrow">接口鉴权</div>
+          <h2>API Key</h2>
+          <p class="help">服务端配置了 API Key 时，控制台请求和业务接口都需要携带它。</p>
+          <div class="field">
+            <label for="apiKey">当前会话 API Key</label>
+            <input id="apiKey" type="password" autocomplete="off" placeholder="未设置时留空">
+          </div>
+          <div class="settings-actions">
+            <button id="saveKey" class="button primary" type="button">保存设置</button>
+          </div>
+          <p class="help">只保存到当前浏览器会话。留空并保存即可清除。</p>
+        </section>
+        <section id="community" class="panel community-panel">
+          <div class="eyebrow">社区交流</div>
+          <h2>加入交流群</h2>
+          <p class="help">扫码加入 Hark2API 交流群，反馈问题或交流使用经验。</p>
+          <img src="/docs/QQ群.png" alt="QQ群 1124104343 二维码">
+          <p class="community-id">QQ群 1124104343</p>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="accountDialog">
+    <form id="accountForm" method="dialog" class="dialog-body">
+      <div class="dialog-head"><div><div class="eyebrow">账号管理</div><h2 id="dialogTitle">添加账号</h2></div><button id="closeAccountDialog" type="button" aria-label="关闭">×</button></div>
+      <div id="dialogLabelField" class="field"><label for="dialogLabel">标签</label><input id="dialogLabel" maxlength="80" placeholder="例如：主账号"></div>
+      <div id="dialogCookieField" class="field"><label for="dialogCookie">Cookie Header</label><textarea id="dialogCookie" required placeholder="粘贴浏览器请求中的完整 Cookie 值"></textarea><div class="help">只提交到本服务，不会在账号列表中回显。</div></div>
+      <div class="dialog-actions"><button id="cancelAccountDialog" class="button" type="button">取消</button><button class="button primary" type="submit">保存</button></div>
+    </form>
+  </dialog>
+
+  <script>
+    const state = { accounts: [], tasks: [], media: [], status: null, view: 'overview' };
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[char]));
+    }
+
+    function getKey() {
+      try { return sessionStorage.getItem('hark2api-api-key') || ''; } catch (_) { return ''; }
+    }
+
+    function setKey(value) {
+      try {
+        if (value) sessionStorage.setItem('hark2api-api-key', value);
+        else sessionStorage.removeItem('hark2api-api-key');
+      } catch (_) {}
+    }
+
+    async function api(path, options = {}) {
+      const headers = new Headers(options.headers || {});
+      const key = getKey();
+      if (key) headers.set('Authorization', `Bearer ${key}`);
+      let body = options.body;
+      if (body && !(body instanceof FormData) && typeof body !== 'string') {
+        headers.set('Content-Type', 'application/json');
+        body = JSON.stringify(body);
+      }
+      const response = await fetch(path, { ...options, headers, body });
+      const text = await response.text();
+      let data = null;
+      try { data = text ? JSON.parse(text) : null; } catch (_) { data = text; }
+      if (!response.ok) {
+        if (response.status === 401) setHealth('需要 API Key', 'warn');
+        throw new Error(data?.detail || data?.error?.message || `请求失败（HTTP ${response.status}）`);
+      }
+      return data;
+    }
+
+    function setHealth(text, tone) {
+      const dot = $('#overviewDot');
+      if (dot) dot.className = `status-dot ${tone || ''}`;
+    }
+
+    function showNotice(message, kind = '') {
+      $('#noticeText').textContent = message;
+      $('#notice').className = `notice show ${kind}`;
+    }
+
+    function clearNotice() { $('#notice').className = 'notice'; }
+
+    function formatTime(value) {
+      if (!value) return '--';
+      return new Date(Number(value) * 1000).toLocaleString('zh-CN', {
+        month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    function formatBytes(value) {
+      const bytes = Number(value || 0);
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+      return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+    }
+
+    function statusBadge(status) {
+      const value = String(status || 'unknown');
+      const tone = value === 'completed' ? 'good' : (value === 'failed' ? 'bad' : (value === 'processing' ? 'warn' : ''));
+      const labels = { queued: '排队中', processing: '处理中', completed: '已完成', failed: '失败' };
+      return `<span class="badge ${tone}">${escapeHtml(labels[value] || value)}</span>`;
+    }
+
+    function accountState(account) {
+      if (!account.enabled) return ['已禁用', ''];
+      if (account.ok === false) return ['认证失败', 'bad'];
+      if (account.ok === true) return ['正常', 'good'];
+      return ['未检查', 'warn'];
+    }
+
+    function setText(selector, value) { $(selector).textContent = value == null ? '--' : value; }
+
+    function renderStatus(data) {
+      state.status = data;
+      const accounts = data.accounts || {};
+      const media = data.media || {};
+      setHealth('服务在线', 'good');
+      setText('#upstreamState', data.upstream || '--');
+      setText('#cookieState', data.cookie_configured ? `已配置（${data.cookie_count || 0} 项）` : '未配置');
+      setText('#keyState', data.api_key_enabled ? '已启用' : '未启用');
+      setText('#mediaState', `${media.count || 0} 个文件，${formatBytes(media.bytes)}`);
+      setText('#metricAccounts', accounts.total || 0);
+      setText('#metricAccountsMeta', `${accounts.enabled || 0} 个启用`);
+      setText('#metricHealthy', accounts.healthy || 0);
+      setText('#metricHealthyMeta', `${accounts.error || 0} 个需检查`);
+      setText('#metricMedia', media.count || 0);
+      setText('#metricMediaMeta', formatBytes(media.bytes));
+    }
+
+    function renderAccounts() {
+      const rows = state.accounts.map((account) => {
+        const [label, tone] = accountState(account);
+        const actionLabel = account.enabled ? '禁用' : '启用';
+        return `<tr>
+          <td><span class="primary-cell">${escapeHtml(account.label || account.id)}</span><span class="sub-cell mono">${escapeHtml(account.id)}</span></td>
+          <td><span class="badge ${tone}">${label}</span></td>
+          <td class="num">${account.cookie_count || 0}</td>
+          <td class="num">${account.use_count || 0}<span class="sub-cell">${formatTime(account.last_used)}</span></td>
+          <td><div class="row-actions">
+            <button class="button small" data-account-action="test" data-id="${escapeHtml(account.id)}">测试</button>
+            <button class="button small" data-account-action="label" data-id="${escapeHtml(account.id)}">改标签</button>
+            <button class="button small" data-account-action="cookie" data-id="${escapeHtml(account.id)}">更新 Cookie</button>
+            <button class="button small" data-account-action="toggle" data-id="${escapeHtml(account.id)}">${actionLabel}</button>
+            <button class="button danger small" data-account-action="delete" data-id="${escapeHtml(account.id)}">删除</button>
+          </div></td>
+        </tr>`;
+      }).join('');
+      $('#accountTable').innerHTML = state.accounts.length ? `<table><thead><tr><th>账号</th><th>状态</th><th>Cookie</th><th>使用次数</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table>` : '<div class="empty">暂无持久化账号。点击“添加账号”导入 Cookie。</div>';
+    }
+
+    function renderTasks() {
+      const rows = state.tasks.map((task) => `<tr>
+        <td><span class="primary-cell mono">${escapeHtml(task.id)}</span><span class="sub-cell">${formatTime(task.created_at)}</span></td>
+        <td>${statusBadge(task.status)}</td>
+        <td><span class="primary-cell">${escapeHtml(task.prompt || '')}</span><span class="sub-cell">进度 ${Number(task.progress || 0)}%</span></td>
+        <td class="num">${task.elapsed == null ? '--' : `${task.elapsed}s`}</td>
+        <td>${task.error ? `<span class="sub-cell" title="${escapeHtml(task.error)}">${escapeHtml(task.error).slice(0, 80)}</span>` : '<span class="sub-cell">--</span>'}</td>
+        <td>${['completed', 'failed'].includes(task.status) ? `<button class="button danger small" data-task-action="delete" data-id="${escapeHtml(task.id)}">删除</button>` : '<span class="sub-cell">运行中</span>'}</td>
+      </tr>`).join('');
+      $('#taskTable').innerHTML = state.tasks.length ? `<table><thead><tr><th>任务</th><th>状态</th><th>提示词</th><th>耗时</th><th>错误</th><th>操作</th></tr></thead><tbody>${rows}</tbody></table>` : '<div class="empty">暂无任务记录。</div>';
+      setText('#metricTasks', state.tasks.length);
+    }
+
+    function renderRecentTasks() {
+      const recent = state.tasks.slice(0, 5);
+      const rows = recent.map((task) => `<tr><td class="mono">${escapeHtml(task.id)}</td><td>${statusBadge(task.status)}</td><td>${escapeHtml(task.prompt || '')}</td><td class="sub-cell">${formatTime(task.created_at)}</td></tr>`).join('');
+      $('#recentTasks').innerHTML = recent.length ? `<table><thead><tr><th>任务</th><th>状态</th><th>提示词</th><th>创建时间</th></tr></thead><tbody>${rows}</tbody></table>` : '<div class="empty">暂无任务记录。</div>';
+    }
+
+    function renderMedia() {
+      const items = state.media.map((item) => {
+        const preview = item.kind === 'image' ? `<img loading="lazy" src="${escapeHtml(item.url)}" alt="${escapeHtml(item.name)}">` : `<span class="file-preview">${escapeHtml(item.media_type || 'file')}</span>`;
+        return `<article class="media-item"><div class="media-preview">${preview}</div><div class="media-meta"><div class="media-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div><div class="media-detail"><span>${formatBytes(item.bytes)}</span><span>${formatTime(item.mtime)}</span></div><div class="media-actions"><a class="button small" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">打开</a><button class="button danger small" data-media-action="delete" data-name="${escapeHtml(item.name)}">删除</button></div></div></article>`;
+      }).join('');
+      $('#mediaGrid').innerHTML = state.media.length ? items : '<div class="empty">暂无媒体文件。</div>';
+    }
+
+    async function loadStatus() { renderStatus(await api('/admin/status')); }
+    async function loadAccounts() {
+      const data = await api('/admin/accounts');
+      state.accounts = data.accounts || [];
+      renderAccounts();
+      if (!state.status) renderStatus({ accounts: data.stats || {}, media: {} });
+      else renderStatus({ ...state.status, accounts: data.stats || state.status.accounts });
+    }
+    async function loadTasks() { state.tasks = (await api('/admin/tasks?limit=100')).tasks || []; renderTasks(); renderRecentTasks(); }
+    async function loadMedia() { state.media = (await api('/admin/media')).media || []; renderMedia(); }
+
+    async function refreshAll() {
+      clearNotice();
+      await Promise.allSettled([loadStatus(), loadAccounts(), loadTasks(), loadMedia()]).then((results) => {
+        const failed = results.find((result) => result.status === 'rejected');
+        if (failed) showNotice(failed.reason?.message || '部分数据读取失败，请检查 API Key。', 'error');
+      });
+    }
+
+    async function refreshSection(view) {
+      try {
+        if (view === 'accounts') await loadAccounts();
+        if (view === 'tasks') await loadTasks();
+        if (view === 'media') await loadMedia();
+        if (view === 'overview') await refreshAll();
+      } catch (error) { showNotice(error.message, 'error'); }
+    }
+
+    function switchView(view, focus = '') {
+      state.view = view;
+      $$('.tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.view === view));
+      const viewSelect = $('#viewSelect');
+      if (viewSelect) viewSelect.value = view;
+      $$('.view').forEach((section) => section.classList.toggle('active', section.id === `view-${view}`));
+      refreshSection(view);
+      if (focus) requestAnimationFrame(() => document.getElementById(focus)?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+    }
+
+    function setDialogMode(mode, account = null) {
+      const dialog = $('#accountDialog');
+      dialog.dataset.mode = mode;
+      dialog.dataset.id = account?.id || '';
+      $('#dialogTitle').textContent = mode === 'add' ? '添加账号' : (mode === 'cookie' ? '更新 Cookie' : '修改标签');
+      $('#dialogLabelField').hidden = mode === 'cookie';
+      $('#dialogCookieField').hidden = mode === 'label';
+      $('#dialogLabel').value = account?.label || '';
+      $('#dialogCookie').value = '';
+      $('#dialogCookie').required = mode !== 'label';
+      if (!dialog.open) dialog.showModal();
+    }
+
+    async function saveAccount(event) {
+      event.preventDefault();
+      const dialog = $('#accountDialog');
+      const mode = dialog.dataset.mode;
+      const id = dialog.dataset.id;
+      const label = $('#dialogLabel').value.trim();
+      const cookie = $('#dialogCookie').value.trim();
+      try {
+        if (mode === 'add') await api('/admin/accounts', { method: 'POST', body: { label, cookie_header: cookie } });
+        if (mode === 'cookie') await api(`/admin/accounts/${encodeURIComponent(id)}`, { method: 'PATCH', body: { cookie_header: cookie } });
+        if (mode === 'label') await api(`/admin/accounts/${encodeURIComponent(id)}`, { method: 'PATCH', body: { label } });
+        dialog.close();
+        showNotice(mode === 'add' ? '账号已添加。' : '账号信息已更新。', 'success');
+        await loadAccounts();
+        await loadStatus();
+      } catch (error) { showNotice(error.message, 'error'); }
+    }
+
+    async function accountAction(action, id) {
+      const account = state.accounts.find((item) => item.id === id);
+      if (!account) return;
+      try {
+        if (action === 'test') {
+          showNotice(`正在测试 ${account.label || id}...`);
+          const result = await api(`/admin/accounts/${encodeURIComponent(id)}/test`, { method: 'POST' });
+          showNotice(result.ok ? '账号认证成功。' : `账号认证失败：${result.error || '未知错误'}`, result.ok ? 'success' : 'error');
+          await loadAccounts();
+          await loadStatus();
+        }
+        if (action === 'label' || action === 'cookie') setDialogMode(action, account);
+        if (action === 'toggle') {
+          await api(`/admin/accounts/${encodeURIComponent(id)}`, { method: 'PATCH', body: { enabled: !account.enabled } });
+          showNotice(account.enabled ? '账号已禁用。' : '账号已启用。', 'success');
+          await loadAccounts();
+          await loadStatus();
+        }
+        if (action === 'delete') {
+          if (!window.confirm(`确认删除账号“${account.label || id}”？`)) return;
+          await api(`/admin/accounts/${encodeURIComponent(id)}`, { method: 'DELETE' });
+          showNotice('账号已删除。', 'success');
+          await loadAccounts();
+          await loadStatus();
+        }
+      } catch (error) { showNotice(error.message, 'error'); }
+    }
+
+    async function taskAction(id) {
+      if (!window.confirm('确认删除这条任务记录？')) return;
+      try { await api(`/admin/tasks/${encodeURIComponent(id)}`, { method: 'DELETE' }); showNotice('任务记录已删除。', 'success'); await loadTasks(); }
+      catch (error) { showNotice(error.message, 'error'); }
+    }
+
+    async function clearTasks() {
+      if (!window.confirm('确认清理全部已结束任务？')) return;
+      try { const result = await api('/admin/tasks/clear', { method: 'POST', body: {} }); showNotice(`已清理 ${result.removed || 0} 条任务。`, 'success'); await loadTasks(); }
+      catch (error) { showNotice(error.message, 'error'); }
+    }
+
+    async function mediaAction(name) {
+      if (!window.confirm(`确认删除媒体文件“${name}”？`)) return;
+      try { await api(`/admin/media/${encodeURIComponent(name)}`, { method: 'DELETE' }); showNotice('媒体文件已删除。', 'success'); await loadMedia(); await loadStatus(); }
+      catch (error) { showNotice(error.message, 'error'); }
+    }
+
+    async function cleanupMedia(event) {
+      event.preventDefault();
+      const days = Number($('#cleanupAge').value);
+      try {
+        const result = await api('/admin/media/cleanup', { method: 'POST', body: { max_age_seconds: Math.max(1, days) * 86400, dry_run: $('#cleanupDryRun').checked } });
+        $('#cleanupResult').textContent = `${result.dry_run ? '预计' : '已'}处理 ${result.removed || 0} 个文件，${formatBytes(result.bytes_removed)}。`;
+        showNotice(result.dry_run ? '清理预览完成。' : '媒体清理完成。', 'success');
+        if (!result.dry_run) { await loadMedia(); await loadStatus(); }
+      } catch (error) { showNotice(error.message, 'error'); }
+    }
+
+    function wait(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
+
+    async function pollTask(taskId) {
+      const deadline = Date.now() + 15 * 60 * 1000;
+      while (Date.now() < deadline) {
+        const task = await api(`/v1/images/tasks/${encodeURIComponent(taskId)}`);
+        $('#runStatus').outerHTML = `<span id="runStatus" class="badge ${task.status === 'completed' ? 'good' : task.status === 'failed' ? 'bad' : 'warn'}">${escapeHtml(task.status)} ${Number(task.progress || 0)}%</span>`;
+        if (task.status === 'completed' || task.status === 'failed') return task;
+        await wait(1200);
+      }
+      throw new Error('任务等待超时，请到“任务”页查看状态。');
+    }
+
+    function renderRunResult(task) {
+      if (task.status === 'failed') { $('#runResult').innerHTML = `<span class="badge bad">失败</span> ${escapeHtml(task.error || '任务失败')}`; return; }
+      const items = (task.data || []).map((item) => `<figure><img src="${escapeHtml(item.url || '')}" alt="生成结果"><figcaption><a href="${escapeHtml(item.url || '')}" target="_blank" rel="noreferrer">打开原图</a></figcaption></figure>`).join('');
+      $('#runResult').innerHTML = items ? `<div class="result-output">${items}</div>` : '任务完成，但没有返回图片。';
+    }
+
+    async function runGeneration(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const button = form.querySelector('button[type="submit"]');
+      button.disabled = true;
+      $('#runResult').textContent = '正在提交任务...';
+      try {
+        const task = await api('/v1/images/tasks', { method: 'POST', body: { prompt: $('#generationPrompt').value.trim(), response_format: 'url' } });
+        $('#runStatus').textContent = '排队中';
+        const done = await pollTask(task.id || task.task_id);
+        renderRunResult(done);
+        await loadTasks();
+        await loadMedia();
+      } catch (error) { $('#runResult').textContent = error.message; $('#runStatus').textContent = '失败'; showNotice(error.message, 'error'); }
+      finally { button.disabled = false; }
+    }
+
+    async function runEdit(event) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const button = form.querySelector('button[type="submit"]');
+      const file = $('#editImage').files[0];
+      if (!file) return;
+      button.disabled = true;
+      $('#runResult').textContent = '正在提交编辑任务...';
+      try {
+        const body = new FormData();
+        body.append('prompt', $('#editPrompt').value.trim());
+        body.append('image', file);
+        body.append('response_format', 'url');
+        body.append('async', 'true');
+        const task = await api('/v1/images/edits', { method: 'POST', body });
+        $('#runStatus').textContent = '排队中';
+        const done = await pollTask(task.id || task.task_id);
+        renderRunResult(done);
+        await loadTasks();
+        await loadMedia();
+      } catch (error) { $('#runResult').textContent = error.message; $('#runStatus').textContent = '失败'; showNotice(error.message, 'error'); }
+      finally { button.disabled = false; }
+    }
+
+    $('#apiKey').value = getKey();
+    $('#saveKey').addEventListener('click', async () => { setKey($('#apiKey').value.trim()); showNotice(getKey() ? 'API Key 已保存到当前浏览器会话。' : 'API Key 已清除。', 'success'); await refreshAll(); });
+    $('#closeNotice').addEventListener('click', clearNotice);
+    $('#refreshAll').addEventListener('click', refreshAll);
+    $('#refreshAccounts').addEventListener('click', () => refreshSection('accounts'));
+    $('#refreshTasks').addEventListener('click', () => refreshSection('tasks'));
+    $('#refreshMedia').addEventListener('click', () => refreshSection('media'));
+    $('#clearTasks').addEventListener('click', clearTasks);
+    $('#addAccount').addEventListener('click', () => setDialogMode('add'));
+    $('#accountForm').addEventListener('submit', saveAccount);
+    $('#closeAccountDialog').addEventListener('click', () => $('#accountDialog').close());
+    $('#cancelAccountDialog').addEventListener('click', () => $('#accountDialog').close());
+    $('#cleanupForm').addEventListener('submit', cleanupMedia);
+    $('#generationForm').addEventListener('submit', runGeneration);
+    $('#editForm').addEventListener('submit', runEdit);
+
+    $$('.tab').forEach((tab) => tab.addEventListener('click', () => switchView(tab.dataset.view)));
+    $('#viewSelect').addEventListener('change', (event) => switchView(event.target.value));
+    $$('[data-go]').forEach((button) => button.addEventListener('click', () => switchView(button.dataset.go, button.dataset.focus || '')));
+    $('#accountTable').addEventListener('click', (event) => { const button = event.target.closest('[data-account-action]'); if (button) accountAction(button.dataset.accountAction, button.dataset.id); });
+    $('#taskTable').addEventListener('click', (event) => { const button = event.target.closest('[data-task-action]'); if (button) taskAction(button.dataset.id); });
+    $('#mediaGrid').addEventListener('click', (event) => { const button = event.target.closest('[data-media-action]'); if (button) mediaAction(button.dataset.name); });
+
+    refreshAll();
+    setInterval(() => { if (state.view === 'overview') refreshSection('overview'); }, 30000);
+  </script>
+</body>
+</html>

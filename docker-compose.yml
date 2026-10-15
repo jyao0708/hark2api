@@ -1,0 +1,12 @@
+services:
+  hark2api:
+    build: .
+    image: hark2api:latest
+    container_name: hark2api
+    restart: unless-stopped
+    ports:
+      - "18611:18611"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data

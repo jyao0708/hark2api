@@ -1,0 +1,13 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+data/
+artifacts/
+.playwright-mcp/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+tests/
+请求.md

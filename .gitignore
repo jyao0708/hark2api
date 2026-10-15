@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+.env.local
+venv/
+.venv/
+data/*
+!data/media/
+data/media/*
+!data/media/.gitkeep
+.playwright-mcp/
+artifacts/
+*.log
+.DS_Store
+请求.md
