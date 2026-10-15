@@ -10,7 +10,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, Callable
 
-from hark import HarkAuthError, HarkClient, HarkError, HarkResult, parse_cookie_header
+from hark import HarkAuthError, HarkClient, HarkError, HarkResult
 
 
 def _cookie_header(account: dict[str, Any]) -> str:
@@ -60,8 +60,6 @@ class AccountStore:
     @staticmethod
     def _public(account: dict[str, Any]) -> dict[str, Any]:
         result = {key: value for key, value in account.items() if key not in {"cookie_header", "cookie_file", "cookies"}}
-        result["cookie_count"] = len(parse_cookie_header(_cookie_header(account)))
-        result["cookie_configured"] = _has_credential(account)
         return result
 
     def has_persisted_accounts(self) -> bool:
@@ -89,7 +87,7 @@ class AccountStore:
         now = int(time.time())
         account = {
             "id": "acc_" + os.urandom(6).hex(),
-            "label": label.strip() or "Hark account",
+            "label": label.strip(),
             "cookie_header": cookie_header.strip(),
             "enabled": True,
             "ok": None,
@@ -145,6 +143,14 @@ class AccountStore:
             for account in self.accounts:
                 if str(account.get("id")) == account_id:
                     account["usage"] = usage
+                    self._write()
+                    return
+
+    def set_profile(self, account_id: str, profile: dict[str, Any]) -> None:
+        with self.lock:
+            for account in self.accounts:
+                if str(account.get("id")) == account_id:
+                    account["profile"] = profile
                     self._write()
                     return
 
@@ -290,8 +296,6 @@ class HarkAccountPool:
             "use_count": self.virtual_status["use_count"],
             "last_used": self.virtual_status["last_used"],
             "usage": self.virtual_status["usage"],
-            "cookie_count": self.cookie_count(),
-            "cookie_configured": bool(records),
             "persistent": False,
         }] if records else []
 
@@ -305,15 +309,48 @@ class HarkAccountPool:
                 "healthy": int(self.virtual_status["ok"] is True),
                 "error": int(self.virtual_status["ok"] is False),
             }
-        stats["cookie_count"] = self.cookie_count()
         return stats
 
     def add_account(self, label: str, cookie_header: str) -> dict[str, Any]:
         account = self.store.add(label, cookie_header)
-        self.clients.pop(str(account["id"]), None)
-        return account
+        account_id = str(account["id"])
+        record = next(item for item in self._records() if str(item.get("id")) == account_id)
+        try:
+            profile = self._client(record).get_profile()
+        except HarkError as exc:
+            self.clients.pop(account_id, None)
+            self.store.delete(account_id)
+            raise HarkAuthError(f"账号验证失败，未添加：{exc}") from None
+
+        self.store.set_profile(account_id, profile)
+        self.store.mark(account_id, True)
+        self._start_usage_refresh(account_id)
+        return next(
+            item for item in self.list_accounts()
+            if str(item.get("id")) == account_id
+        )
 
     def update_account(self, account_id: str, **fields: Any) -> dict[str, Any] | None:
+        if "cookie_header" in fields:
+            current = self.store.get(account_id)
+            if current is None:
+                return None
+            candidate = dict(current)
+            candidate["cookie_header"] = str(fields["cookie_header"] or "").strip()
+            self.clients.pop(account_id, None)
+            try:
+                profile = self._client(candidate).get_profile()
+            except HarkError as exc:
+                self.clients.pop(account_id, None)
+                raise HarkAuthError(f"Cookie 验证失败，未更新：{exc}") from None
+            result = self.store.update(account_id, **fields)
+            self.store.set_profile(account_id, profile)
+            self.store.mark(account_id, True)
+            self._start_usage_refresh(account_id)
+            return next(
+                item for item in self.list_accounts()
+                if str(item.get("id")) == account_id
+            )
         result = self.store.update(account_id, **fields)
         if result and ("cookie_header" in fields or "enabled" in fields):
             self.clients.pop(account_id, None)
@@ -328,10 +365,11 @@ class HarkAccountPool:
         if account is None:
             raise KeyError(account_id)
         try:
-            user_id = self._client(account).get_user_id()
+            profile = self._client(account).get_profile()
+            self.store.set_profile(account_id, profile)
             self._mark_success(account)
-            return {"ok": True, "account_id": account_id, "user_id_present": bool(user_id)}
-        except HarkAuthError as exc:
+            return {"ok": True, "account_id": account_id, "profile": profile}
+        except HarkError as exc:
             self._mark_failure(account, str(exc))
             return {"ok": False, "account_id": account_id, "error": str(exc)}
 
@@ -340,6 +378,15 @@ class HarkAccountPool:
             "status": "loading",
             "updated_at": int(time.time()),
         })
+
+    def _start_usage_refresh(self, account_id: str) -> None:
+        self.set_usage_pending(account_id)
+        threading.Thread(
+            target=self.refresh_usage,
+            args=(account_id,),
+            daemon=True,
+            name=f"hark-account-usage-{account_id}",
+        ).start()
 
     def refresh_usage(self, account_id: str, timeout: int | None = None) -> dict[str, Any]:
         account = next((item for item in self._records() if str(item.get("id")) == account_id), None)

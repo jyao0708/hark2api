@@ -1664,22 +1664,60 @@
     .workbench-form, .workbench-preview { min-height: 560px; padding: 26px; }
     .workbench-form { display: flex; flex-direction: column; }
     .workbench-form h2 { margin-bottom: 22px; }
-    .workbench-form textarea { min-height: 184px; }
-    .workbench-form .button[type="submit"] { margin-top: auto; }
-    .reference-picker {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      gap: 12px;
-      align-items: center;
-      min-height: 78px;
-      border: 1px dashed var(--line-strong);
-      padding: 10px;
-      background: var(--surface-tint);
+    .prompt-composer {
+      display: flex;
+      min-height: 350px;
+      flex: 1;
+      flex-direction: column;
+      overflow: hidden;
+      border: 2px solid var(--line-strong);
+      background: var(--surface-strong);
+      transition: border-color .18s ease, box-shadow .18s ease;
+    }
+    .prompt-composer:focus-within, .prompt-composer.is-dragging {
+      border-color: var(--accent);
+      box-shadow: 5px 5px 0 var(--accent-soft);
+    }
+    .prompt-composer.is-dragging { background: var(--signal-blue); }
+    .prompt-composer textarea {
+      display: block;
+      width: 100%;
+      min-height: 204px;
+      flex: 1;
+      resize: vertical;
+      border: 0;
+      padding: 18px 18px 12px;
+      background: transparent;
+      box-shadow: none;
+    }
+    .prompt-composer textarea:focus { border: 0; box-shadow: none; outline: 0; }
+    .style-prompt-block {
+      margin: 12px 12px 0;
+      padding: 10px 12px;
+      border-left: 3px solid var(--accent);
+      background: var(--signal-lilac);
+    }
+    .style-prompt-block[hidden] { display: none; }
+    .style-prompt-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--accent-dark); font-size: 11px; font-weight: 800; }
+    .style-prompt-clear, .reference-remove {
+      border: 0;
+      padding: 0;
+      color: var(--muted);
+      background: transparent;
+      font-size: 11px;
       cursor: pointer;
     }
-    .reference-picker:hover { border-color: var(--accent); }
-    .reference-picker input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-    .reference-picker.has-preview { grid-template-columns: 78px minmax(0, 1fr); }
+    .style-prompt-clear:hover, .reference-remove:hover { color: var(--bad); }
+    .style-prompt-text { margin-top: 6px; color: var(--ink-strong); font-size: 12px; line-height: 1.65; white-space: pre-wrap; }
+    .reference-preview-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 12px 10px;
+      padding: 8px;
+      background: var(--surface-tint);
+    }
+    .reference-preview-wrap[hidden] { display: none; }
     .reference-thumb {
       display: none;
       width: 78px;
@@ -1688,9 +1726,14 @@
       background: var(--surface-muted);
     }
     .reference-thumb:not([hidden]) { display: block; }
-    .reference-copy { min-width: 0; color: var(--muted); }
-    .reference-copy strong { display: block; color: var(--ink); }
-    .reference-copy span { display: block; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+    .reference-file-name { min-width: 0; flex: 1; overflow: hidden; color: var(--muted); text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+    .prompt-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-top: 1px solid var(--line); background: var(--surface-tint); }
+    .prompt-tools { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tool-button { min-height: 34px; border: 1px solid transparent; padding: 5px 8px; color: var(--muted); background: transparent; font-size: 12px; font-weight: 750; cursor: pointer; }
+    .tool-button:hover:not(:disabled) { border-color: var(--line-strong); color: var(--ink-strong); background: var(--surface-strong); }
+    .tool-button:disabled { cursor: not-allowed; opacity: .45; }
+    .tool-button span { margin-right: 4px; color: var(--accent-dark); font-size: 16px; vertical-align: -1px; }
+    .prompt-toolbar .button[type="submit"] { margin-top: 0; }
     .workbench-preview {
       display: flex;
       flex-direction: column;
@@ -1805,11 +1848,20 @@
     .community-control img { flex: 0 0 180px; width: 180px; height: 180px; margin: 0; object-fit: contain; }
     .community-id { margin: 0; text-align: left; }
 
-    .quota-cell { min-width: 190px; }
-    .quota-line { display: flex; justify-content: space-between; gap: 16px; color: var(--muted); font-size: 12px; }
-    .quota-line + .quota-line { margin-top: 4px; }
-    .quota-line strong { color: var(--ink); font-variant-numeric: tabular-nums; }
-    .quota-reset { display: block; margin-top: 1px; color: var(--faint); font-size: 11px; }
+    .account-email { display: block; max-width: 260px; overflow: hidden; color: var(--ink-strong); font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+    .quota-cell, .reset-cell { min-width: 215px; }
+    .meter-stack { display: grid; gap: 9px; }
+    .meter-row { display: grid; grid-template-columns: 24px minmax(70px, 1fr) 42px; gap: 7px; align-items: center; }
+    .meter-label { color: var(--muted); font-size: 11px; }
+    .meter-value { color: var(--ink-strong); font-size: 11px; font-variant-numeric: tabular-nums; text-align: right; }
+    .meter-track { height: 6px; overflow: hidden; background: var(--line); }
+    .meter-fill { display: block; width: 0; height: 100%; background: var(--accent); transition: width .25s ease; }
+    .meter-row:nth-child(2) .meter-fill { background: var(--good); }
+    .reset-track .meter-fill { background: var(--signal-blue); }
+    .reset-row { display: grid; gap: 3px; }
+    .reset-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .reset-time { overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+    .quota-meta { display: block; margin-top: 8px; color: var(--faint); font-size: 10px; }
     .quota-muted { color: var(--faint); font-size: 12px; }
     .quota-error { color: var(--bad); font-size: 12px; }
 
@@ -1822,10 +1874,21 @@
     }
     @media (max-width: 600px) {
       .workbench-form, .workbench-preview, .media-library-panel { padding: 18px; }
-      .reference-picker.has-preview { grid-template-columns: 64px minmax(0, 1fr); }
       .reference-thumb { width: 64px; height: 64px; }
+      .prompt-toolbar { align-items: stretch; flex-direction: column; }
+      .prompt-toolbar .button[type="submit"] { width: 100%; }
       .cleanup-controls { grid-template-columns: 1fr; }
       .community-control { align-items: flex-start; flex-direction: column; }
+      #accountTable { overflow: visible; }
+      #accountTable table { min-width: 0; width: 100%; }
+      #accountTable thead { display: none; }
+      #accountTable tbody, #accountTable tr, #accountTable td { display: block; }
+      #accountTable tr { padding: 14px 16px; }
+      #accountTable td { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; align-items: start; padding: 10px 0; border-bottom: 0; }
+      #accountTable td::before { content: attr(data-label); color: var(--muted); font-size: 11px; font-weight: 800; }
+      #accountTable td:first-child { padding-top: 0; }
+      #accountTable td:last-child { padding-bottom: 0; }
+      #accountTable .row-actions { justify-content: flex-start; }
     }
     @media (prefers-reduced-motion: reduce) {
       .progress-indicator::after { animation: none; transform: translateX(0); }
@@ -1873,7 +1936,7 @@
           <table class="state-table">
             <tbody>
               <tr><th>上游</th><td id="upstreamState" class="mono">--</td></tr>
-              <tr><th>会话 Cookie</th><td id="cookieState">读取中</td></tr>
+              <tr><th>Hark 账号</th><td id="cookieState">读取中</td></tr>
               <tr><th>API Key</th><td id="keyState">--</td></tr>
               <tr><th>媒体存储</th><td id="mediaState">读取中</td></tr>
             </tbody>
@@ -1945,16 +2008,26 @@
       <div id="workbenchLayout" class="workbench-layout">
         <form id="generationForm" class="panel workbench-form">
           <h2>生成图片</h2>
-          <div class="field"><label for="generationPrompt">提示词</label><textarea id="generationPrompt" required placeholder="描述你想看到的画面"></textarea></div>
-          <div class="field">
-            <label for="editImage">参考图（可选）</label>
-            <label class="reference-picker" for="editImage">
-              <img id="referencePreview" class="reference-thumb" alt="" hidden>
-              <input id="editImage" type="file" accept="image/*">
-              <span class="reference-copy"><strong>选择一张图片</strong><span id="referenceFileName">不添加参考图时，将直接文生图</span></span>
-            </label>
+          <div id="promptComposer" class="prompt-composer">
+            <div id="stylePromptBlock" class="style-prompt-block" hidden>
+              <div class="style-prompt-head"><span>提取的风格</span><button id="clearStylePrompt" class="style-prompt-clear" type="button">移除</button></div>
+              <div id="stylePromptText" class="style-prompt-text"></div>
+            </div>
+            <textarea id="generationPrompt" required aria-label="生成提示词" placeholder="描述你想看到的画面"></textarea>
+            <div id="referencePreviewWrap" class="reference-preview-wrap" hidden>
+              <img id="referencePreview" class="reference-thumb" alt="参考图预览">
+              <span id="referenceFileName" class="reference-file-name"></span>
+              <button id="removeReference" class="reference-remove" type="button">移除</button>
+            </div>
+            <div class="prompt-toolbar">
+              <div class="prompt-tools">
+                <button id="chooseReference" class="tool-button" type="button"><span aria-hidden="true">＋</span>添加参考图</button>
+                <button id="extractStyle" class="tool-button" type="button" disabled><span aria-hidden="true">✦</span>提取风格</button>
+              </div>
+              <button class="button primary" type="submit">生成</button>
+            </div>
+            <input id="editImage" type="file" accept="image/*" hidden>
           </div>
-          <button class="button primary block" type="submit">生成图片</button>
         </form>
         <section class="panel workbench-preview" aria-live="polite">
           <div class="preview-head"><span id="runStatus" class="badge">等待生成</span></div>
@@ -2005,13 +2078,13 @@
     <form id="accountForm" method="dialog" class="dialog-body">
       <div class="dialog-head"><div><div class="eyebrow">账号管理</div><h2 id="dialogTitle">添加账号</h2></div><button id="closeAccountDialog" type="button" aria-label="关闭">×</button></div>
       <div id="dialogLabelField" class="field"><label for="dialogLabel">标签</label><input id="dialogLabel" maxlength="80" placeholder="例如：主账号"></div>
-      <div id="dialogCookieField" class="field"><label for="dialogCookie">Cookie Header</label><textarea id="dialogCookie" required placeholder="粘贴浏览器请求中的完整 Cookie 值"></textarea><div class="help">只提交到本服务，不会在账号列表中回显。</div></div>
+      <div id="dialogCookieField" class="field"><label for="dialogCookie">Cookie / ST</label><textarea id="dialogCookie" required placeholder="粘贴完整 Cookie，或仅粘贴 session token"></textarea><div class="help">支持完整 Cookie，也支持只粘贴 __Secure-hark.session_token 的值。保存时会读取账号邮箱并同步额度；如果无法读取个人资料，账号不会添加。</div></div>
       <div class="dialog-actions"><button id="cancelAccountDialog" class="button" type="button">取消</button><button class="button primary" type="submit">保存</button></div>
     </form>
   </dialog>
 
   <script>
-    const state = { accounts: [], tasks: [], media: [], status: null, view: 'overview' };
+    const state = { accounts: [], tasks: [], media: [], status: null, view: 'overview', referenceFile: null, referenceUrl: '' };
     const $ = (selector) => document.querySelector(selector);
     const $$ = (selector) => Array.from(document.querySelectorAll(selector));
 
@@ -2090,7 +2163,7 @@
       if (!account.enabled) return ['已禁用', ''];
       if (account.ok === false) return ['认证失败', 'bad'];
       if (account.ok === true) return ['正常', 'good'];
-      return ['未检查', 'warn'];
+      return ['待验证', 'warn'];
     }
 
     function setText(selector, value) { $(selector).textContent = value == null ? '--' : value; }
@@ -2101,7 +2174,7 @@
       const media = data.media || {};
       setHealth('服务在线', 'good');
       setText('#upstreamState', data.upstream || '--');
-      setText('#cookieState', data.cookie_configured ? `已配置（${data.cookie_count || 0} 项）` : '未配置');
+      setText('#cookieState', data.cookie_configured ? '已配置' : '未配置');
       setText('#keyState', data.api_key_enabled ? '已启用' : '未启用');
       setText('#mediaState', `${media.count || 0} 个文件，${formatBytes(media.bytes)}`);
       setText('#metricAccounts', accounts.total || 0);
@@ -2126,29 +2199,70 @@
       $('#mediaGrid').innerHTML = state.media.length ? items : '<div class="empty">暂无媒体文件。</div>';
     }
 
+    function percentValue(value) {
+      const number = Number.parseInt(String(value ?? '').replace('%', ''), 10);
+      return Number.isFinite(number) ? Math.max(0, Math.min(100, number)) : 0;
+    }
+
+    function formatResetTime(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return '--';
+      return date.toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+
     function renderQuota(account) {
       const usage = account.usage;
-      if (!usage || usage.status === 'loading') return '<span class="quota-muted">额度查询中...</span>';
+      if (!usage) return '<span class="quota-muted">尚未查询</span>';
+      if (usage.status === 'loading') return '<span class="quota-muted">额度查询中...</span>';
       if (usage.status === 'error') return '<span class="quota-error">获取失败：' + escapeHtml(usage.error || '请重试') + '</span>';
       if (usage.status !== 'ready') return '<span class="quota-muted">尚未查询</span>';
-      return '<div class="quota-line"><span>每日剩余</span><strong>' + escapeHtml(usage.daily.left) + '</strong></div>' +
-        '<span class="quota-reset">重置 ' + escapeHtml(usage.daily.reset) + '</span>' +
-        '<div class="quota-line"><span>月度剩余</span><strong>' + escapeHtml(usage.monthly.left) + '</strong></div>' +
-        '<span class="quota-reset">重置 ' + escapeHtml(usage.monthly.reset) + '</span>' +
-        '<span class="sub-cell">更新于 ' + formatTime(usage.updated_at) + '</span>';
+      const meter = (label, item) => {
+        const percent = percentValue(item.left);
+        return '<div class="meter-row"><span class="meter-label">' + label + '</span><span class="meter-track"><span class="meter-fill" style="width:' + percent + '%"></span></span><strong class="meter-value">' + escapeHtml(item.left || '--') + '</strong></div>';
+      };
+      return '<div class="meter-stack">' + meter('日', usage.daily) + meter('月', usage.monthly) + '</div>' +
+        '<span class="quota-meta">' + escapeHtml(usage.plan || 'Hark') + ' · 更新于 ' + formatTime(usage.updated_at) + '</span>';
+    }
+
+    function renderReset(account) {
+      const usage = account.usage;
+      if (!usage) return '<span class="quota-muted">尚未查询</span>';
+      if (usage.status === 'loading') return '<span class="quota-muted">额度查询中...</span>';
+      if (usage.status === 'error') return '<span class="quota-error">暂不可用</span>';
+      if (usage.status !== 'ready') return '<span class="quota-muted">尚未查询</span>';
+      const meter = (label, item) => {
+        const percent = Math.max(0, Math.min(100, Number(item.reset_left_percent) || 0));
+        return '<div class="reset-row"><div class="reset-top"><span class="meter-label">' + label + '</span><span class="reset-time" data-reset-label>' + escapeHtml(formatResetTime(item.reset_at)) + '</span></div><span class="meter-track reset-track"><span class="meter-fill" data-reset-at="' + escapeHtml(item.reset_at || '') + '" data-reset-duration="' + Number(item.reset_duration_seconds || 0) + '" style="width:' + percent + '%"></span></span></div>';
+      };
+      return '<div class="meter-stack">' + meter('日', usage.daily) + meter('月', usage.monthly) + '</div>';
+    }
+
+    function updateResetBars() {
+      const now = Date.now();
+      $$('[data-reset-at]').forEach((bar) => {
+        const resetAt = Date.parse(bar.dataset.resetAt || '');
+        const duration = Number(bar.dataset.resetDuration || 0) * 1000;
+        if (!Number.isFinite(resetAt) || !duration) return;
+        const percent = Math.max(0, Math.min(100, ((resetAt - now) / duration) * 100));
+        bar.style.width = percent + '%';
+        const label = bar.closest('.reset-row')?.querySelector('[data-reset-label]');
+        if (label) label.textContent = formatResetTime(bar.dataset.resetAt);
+      });
     }
 
     function renderAccounts() {
       const rows = state.accounts.map((account) => {
         const [label, tone] = accountState(account);
         const actionLabel = account.enabled ? '禁用' : '启用';
+        const profile = account.profile || {};
+        const email = profile.email || '个人资料未同步';
+        const name = account.label || profile.nickname || profile.name || 'Hark 账号';
         return '<tr>' +
-          '<td><span class="primary-cell">' + escapeHtml(account.label || account.id) + '</span><span class="sub-cell mono">' + escapeHtml(account.id) + '</span></td>' +
-          '<td><span class="badge ' + tone + '">' + label + '</span></td>' +
-          '<td class="quota-cell">' + renderQuota(account) + '</td>' +
-          '<td class="num">' + (account.cookie_count || 0) + '</td>' +
-          '<td class="num">' + (account.use_count || 0) + '<span class="sub-cell">' + formatTime(account.last_used) + '</span></td>' +
-          '<td><div class="row-actions">' +
+          '<td data-label="账号"><span class="account-email" title="' + escapeHtml(email) + '">' + escapeHtml(email) + '</span><span class="sub-cell">' + escapeHtml(name) + '</span></td>' +
+          '<td data-label="状态"><span class="badge ' + tone + '">' + label + '</span></td>' +
+          '<td data-label="额度" class="quota-cell">' + renderQuota(account) + '</td>' +
+          '<td data-label="重置" class="reset-cell">' + renderReset(account) + '</td>' +
+          '<td data-label="操作"><div class="row-actions">' +
             '<button class="button small" data-account-action="test" data-id="' + escapeHtml(account.id) + '">测试</button>' +
             '<button class="button small" data-account-action="usage" data-id="' + escapeHtml(account.id) + '">刷新额度</button>' +
             '<button class="button small" data-account-action="label" data-id="' + escapeHtml(account.id) + '">改标签</button>' +
@@ -2159,8 +2273,9 @@
         '</tr>';
       }).join('');
       $('#accountTable').innerHTML = state.accounts.length
-        ? '<table><thead><tr><th>账号</th><th>状态</th><th>额度</th><th>Cookie</th><th>使用次数</th><th>操作</th></tr></thead><tbody>' + rows + '</tbody></table>'
-        : '<div class="empty">暂无账号。点击“添加账号”导入 Cookie。</div>';
+        ? '<table><thead><tr><th>账号</th><th>状态</th><th>额度</th><th>重置</th><th>操作</th></tr></thead><tbody>' + rows + '</tbody></table>'
+        : '<div class="empty">暂无账号。添加一个已登录的 Hark 账号。</div>';
+      updateResetBars();
     }
 
     function renderTasks() {
@@ -2258,12 +2373,25 @@
       const label = $('#dialogLabel').value.trim();
       const cookie = $('#dialogCookie').value.trim();
       try {
-        if (mode === 'add') await api('/admin/accounts', { method: 'POST', body: { label, cookie_header: cookie } });
+        let saved;
+        if (mode === 'add') saved = await api('/admin/accounts', { method: 'POST', body: { label, cookie_header: cookie } });
         if (mode === 'cookie') await api(`/admin/accounts/${encodeURIComponent(id)}`, { method: 'PATCH', body: { cookie_header: cookie } });
         if (mode === 'label') await api(`/admin/accounts/${encodeURIComponent(id)}`, { method: 'PATCH', body: { label } });
         dialog.close();
-        showNotice(mode === 'add' ? '账号已添加。' : '账号信息已更新。', 'success');
+        if (mode === 'add') {
+          const quotaFailed = saved?.usage?.status === 'error';
+          const quotaLoading = saved?.usage?.status === 'loading';
+          showNotice(
+            quotaFailed ? '账号已验证并添加，额度暂时获取失败，可稍后刷新。' : (quotaLoading ? '账号已验证并添加，额度正在获取。' : '账号已验证并添加，邮箱和额度已同步。'),
+            quotaFailed ? '' : 'success'
+          );
+        } else {
+          showNotice('账号信息已更新。', 'success');
+        }
         await loadAccounts();
+        if (mode === 'add' && saved?.usage?.status === 'loading') {
+          waitForUsage().catch(() => {});
+        }
         await loadStatus();
       } catch (error) { showNotice(error.message, 'error'); }
     }
@@ -2362,6 +2490,60 @@
       actions.hidden = false;
     }
 
+    function clearStylePrompt() {
+      $('#stylePromptBlock').hidden = true;
+      $('#stylePromptText').textContent = '';
+    }
+
+    function renderReferenceFile(file) {
+      state.referenceFile = file || null;
+      const wrap = $('#referencePreviewWrap');
+      const preview = $('#referencePreview');
+      const extract = $('#extractStyle');
+      if (state.referenceUrl) URL.revokeObjectURL(state.referenceUrl);
+      if (!file) {
+        state.referenceUrl = '';
+        wrap.hidden = true;
+        preview.removeAttribute('src');
+        $('#referenceFileName').textContent = '';
+        extract.disabled = true;
+        return;
+      }
+      state.referenceUrl = URL.createObjectURL(file);
+      preview.src = state.referenceUrl;
+      $('#referenceFileName').textContent = file.name || '参考图';
+      wrap.hidden = false;
+      extract.disabled = false;
+    }
+
+    async function extractStylePrompt() {
+      const file = state.referenceFile;
+      if (!file) return;
+      const button = $('#extractStyle');
+      const original = button.innerHTML;
+      button.disabled = true;
+      button.textContent = '提取中...';
+      try {
+        const body = new FormData();
+        body.append('image', file);
+        const data = await api('/admin/style-prompt', { method: 'POST', body });
+        $('#stylePromptText').textContent = String(data.prompt || '').trim();
+        $('#stylePromptBlock').hidden = !$('#stylePromptText').textContent;
+        if (!$('#stylePromptBlock').hidden) showNotice('风格提示已提取，可继续补充主体和场景。', 'success');
+      } catch (error) {
+        showNotice(`风格提取失败：${error.message}`, 'error');
+      } finally {
+        button.innerHTML = original;
+        button.disabled = !state.referenceFile;
+      }
+    }
+
+    function combinedPrompt() {
+      const style = $('#stylePromptText').textContent.trim();
+      const prompt = $('#generationPrompt').value.trim();
+      return [style, prompt].filter(Boolean).join('\n\n');
+    }
+
     async function pollTask(taskId) {
       const deadline = Date.now() + 15 * 60 * 1000;
       while (Date.now() < deadline) {
@@ -2387,8 +2569,12 @@
       event.preventDefault();
       const form = event.currentTarget;
       const button = form.querySelector('button[type="submit"]');
-      const prompt = $('#generationPrompt').value.trim();
-      const file = $('#editImage').files[0];
+      const prompt = combinedPrompt();
+      const file = state.referenceFile;
+      if (!$('#generationPrompt').value.trim()) {
+        showNotice('请先描述想生成的主体或场景。', 'error');
+        return;
+      }
       button.disabled = true;
       $('#runActions').hidden = true;
       $('#workbenchQuota').textContent = '';
@@ -2436,18 +2622,31 @@
     $('#cancelAccountDialog').addEventListener('click', () => $('#accountDialog').close());
     $('#cleanupForm').addEventListener('submit', cleanupMedia);
     $('#generationForm').addEventListener('submit', runGeneration);
-    $('#editImage').addEventListener('change', (event) => {
-      const file = event.target.files[0];
-      $('#referenceFileName').textContent = file ? file.name : '不添加参考图时，将直接文生图';
-      document.querySelector('.reference-picker').classList.toggle('has-preview', Boolean(file));
-      const preview = $('#referencePreview');
-      if (!file) {
-        preview.hidden = true;
-        preview.removeAttribute('src');
+    $('#chooseReference').addEventListener('click', () => $('#editImage').click());
+    $('#extractStyle').addEventListener('click', extractStylePrompt);
+    $('#clearStylePrompt').addEventListener('click', clearStylePrompt);
+    $('#removeReference').addEventListener('click', () => {
+      $('#editImage').value = '';
+      renderReferenceFile(null);
+    });
+    $('#editImage').addEventListener('change', (event) => renderReferenceFile(event.target.files[0] || null));
+    $('#promptComposer').addEventListener('dragover', (event) => {
+      event.preventDefault();
+      $('#promptComposer').classList.add('is-dragging');
+    });
+    $('#promptComposer').addEventListener('dragleave', (event) => {
+      if (!event.relatedTarget || !$('#promptComposer').contains(event.relatedTarget)) $('#promptComposer').classList.remove('is-dragging');
+    });
+    $('#promptComposer').addEventListener('drop', (event) => {
+      event.preventDefault();
+      $('#promptComposer').classList.remove('is-dragging');
+      const file = event.dataTransfer.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        showNotice('只能添加图片作为参考图。', 'error');
         return;
       }
-      preview.src = URL.createObjectURL(file);
-      preview.hidden = false;
+      renderReferenceFile(file);
     });
 
     $$('.tab').forEach((tab) => tab.addEventListener('click', () => switchView(tab.dataset.view)));
@@ -2461,7 +2660,7 @@
     $('#mediaGrid').addEventListener('click', (event) => { const button = event.target.closest('[data-media-action]'); if (button) mediaAction(button.dataset.name); });
 
     refreshAll();
-    setInterval(() => { if (state.view === 'overview') refreshSection('overview'); }, 30000);
+    setInterval(() => { updateResetBars(); if (state.view === 'overview') refreshSection('overview'); }, 30000);
   </script>
 </body>
 </html>

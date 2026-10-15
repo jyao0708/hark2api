@@ -42,6 +42,12 @@ def main():
 
             def run(self, prompt, **kwargs):
                 self.calls.append((prompt, kwargs))
+                if kwargs.get("input_attachment") and not kwargs.get("require_attachment"):
+                    return HarkResult(
+                        "conversation", "message",
+                        "视觉方向：低饱和电影感\n色彩系统：冷青与暖橙",
+                        [],
+                    )
                 return HarkResult(
                     "conversation", "message", "", [{
                         "filename": output.name,
@@ -100,6 +106,12 @@ def main():
                 )
                 assert conflict.status_code == 409
                 assert client.post("/v1/videos", json={"prompt": "unsupported"}).status_code == 404
+                style = client.post(
+                    "/admin/style-prompt",
+                    files={"image": ("reference.png", b"aaaa", "image/png")},
+                )
+                assert style.status_code == 200
+                assert "视觉方向" in style.json()["prompt"]
         finally:
             module.client = original_client
             module.tasks = original_tasks

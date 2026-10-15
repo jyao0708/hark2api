@@ -1,16 +1,17 @@
 import sys
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
+from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from hark import (
     HarkClient,
-    HarkUsageError,
     history_messages,
+    parse_billing_summary,
     parse_cookie_header,
-    parse_usage_response,
     reply_attachments,
     reply_messages,
     reply_stage,
@@ -46,15 +47,6 @@ def test_attachment_upload():
 
 
 def test_usage_parser_and_active_stage():
-    usage = parse_usage_response(
-        '{"d":{"left":"95%","reset":"2026-10-16 11:07"},'
-        '"m":{"left":"99%","reset":"2026-11-01 08:00"}}'
-    )
-    assert usage == {
-        "daily": {"left": "95%", "reset": "2026-10-16 11:07"},
-        "monthly": {"left": "99%", "reset": "2026-11-01 08:00"},
-    }
-
     active_messages = [
         {"isStreaming": False, "jobStatus": "completed"},
         {"isStreaming": True, "jobStatus": "running"},
@@ -62,21 +54,47 @@ def test_usage_parser_and_active_stage():
     assert reply_stage(active_messages) == "generating"
     assert not reply_terminal(active_messages)
 
-    for invalid in (
-        '说明 {"d":{"left":"95%","reset":"2026-10-16 11:07"}}',
-        '{"d":{"left":"95%","reset":"2026-1-16 11:07"},"m":{"left":"99%","reset":"2026-11-01 08:00"}}',
-    ):
-        try:
-            parse_usage_response(invalid)
-        except HarkUsageError:
-            pass
-        else:
-            raise AssertionError("invalid usage response was accepted")
+    billing = parse_billing_summary(
+        {
+            "meters": {"harkTokens": {
+                "dailyLimit": 8_000_000,
+                "dailyUsed": 477_754,
+                "dailyResetsAt": "2026-10-16T03:07:43Z",
+                "poolLimit": 40_000_000,
+                "poolUsed": 477_754,
+                "poolResetsAt": "2026-11-01T00:00:00Z",
+            }},
+            "plan": {"name": "hark pro"},
+        },
+        now=datetime(2026, 10, 15, 12, 0, tzinfo=ZoneInfo("Asia/Shanghai")),
+    )
+    assert billing["plan"] == "hark pro"
+    assert billing["daily"]["left"] == "94%"
+    assert billing["monthly"]["left"] == "99%"
+    assert billing["daily"]["reset"] == "2026-10-16 11:07"
+    assert billing["monthly"]["reset"] == "2026-11-01 08:00"
+
+    client = HarkClient(SimpleNamespace(
+        upstream="https://hark.com", user_agent="test", locale="zh-CN",
+        cookie_header="", cookie_file="", request_timeout=3, timezone="Asia/Shanghai",
+    ))
+    client._request_json = Mock(return_value={"email": "person@example.com", "nickname": "person"})
+    assert client.get_profile() == {"email": "person@example.com", "name": "", "nickname": "person"}
+    client._request_json = Mock(return_value={
+        "meters": {"harkTokens": {
+            "dailyLimit": 100, "dailyUsed": 20, "dailyResetsAt": "2026-10-16T03:07:43Z",
+            "poolLimit": 1000, "poolUsed": 50, "poolResetsAt": "2026-11-01T00:00:00Z",
+        }},
+        "plan": {"name": "hark pro"},
+    })
+    assert client.query_usage(timeout=7)["daily"]["left"] == "80%"
+    assert client._request_json.call_args.kwargs["timeout"] == 7
 
 
 def main():
     cookies = parse_cookie_header("a=1; __Secure-hark.session_token=x%3Dy; empty=")
     assert cookies == {"a": "1", "__Secure-hark.session_token": "x%3Dy", "empty": ""}
+    assert parse_cookie_header("token%3Dvalue") == {"__Secure-hark.session_token": "token%3Dvalue"}
 
     user_id = "user-1"
     payload = {

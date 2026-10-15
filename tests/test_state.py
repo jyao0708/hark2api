@@ -1,6 +1,7 @@
 import os
 import sys
 import tempfile
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -8,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from account_pool import HarkAccountPool, AccountStore
 from config import Config
-from hark import HarkAuthError, HarkResult
+from hark import HarkAuthError, HarkError, HarkResult
 from task_store import TaskStore
 
 
@@ -19,8 +20,8 @@ def main():
         first = accounts.add("first", "a=1; b=2")
         second = accounts.add("second", "a=3")
         assert "cookie_header" not in first
-        assert first["cookie_count"] == 2
-        assert accounts.list_public()[1]["cookie_count"] == 1
+        assert "cookie_count" not in first
+        assert "cookie_header" not in accounts.list_public()[1]
         assert os.stat(account_path).st_mode & 0o077 == 0
 
         cfg = SimpleNamespace(accounts_file=account_path, cookie_header="", cookie_file="")
@@ -48,6 +49,57 @@ def main():
         assert account["usage"]["status"] == "ready"
         assert account["usage"]["daily"]["left"] == "95%"
 
+        class ProfileClient:
+            def get_profile(self):
+                return {"email": "person@example.com", "name": "", "nickname": "person"}
+
+            def query_usage(self, *args, **kwargs):
+                return {"plan": "hark pro", "daily": {"left": "90%"}, "monthly": {"left": "99%"}}
+
+        pool._client = lambda _account: ProfileClient()
+        onboarded = pool.add_account("", "token")
+        assert onboarded["profile"]["email"] == "person@example.com"
+        deadline = time.monotonic() + 1
+        while time.monotonic() < deadline:
+            saved = AccountStore(account_path).get(onboarded["id"])
+            if (saved.get("usage") or {}).get("status") == "ready":
+                break
+            time.sleep(0.01)
+        else:
+            raise AssertionError("background usage refresh did not finish")
+
+        class InvalidProfileClient:
+            def get_profile(self):
+                raise HarkAuthError("expired")
+
+        pool._client = lambda _account: InvalidProfileClient()
+        try:
+            pool.add_account("invalid", "expired-token")
+        except HarkAuthError:
+            pass
+        else:
+            raise AssertionError("invalid profile was accepted")
+        assert not any(item.get("label") == "invalid" for item in AccountStore(account_path).list_internal())
+
+        class MissingUsageClient:
+            def get_profile(self):
+                return {"email": "quota-later@example.com", "name": "", "nickname": ""}
+
+            def query_usage(self, *args, **kwargs):
+                raise HarkError("billing unavailable")
+
+        pool._client = lambda _account: MissingUsageClient()
+        quota_later = pool.add_account("quota-later", "quota-token")
+        assert quota_later["ok"] is True
+        deadline = time.monotonic() + 1
+        while time.monotonic() < deadline:
+            saved = AccountStore(account_path).get(quota_later["id"])
+            if (saved.get("usage") or {}).get("status") == "error":
+                break
+            time.sleep(0.01)
+        else:
+            raise AssertionError("background usage failure was not recorded")
+
         task_path = os.path.join(directory, "tasks.json")
         task_store = TaskStore(task_path)
         task = task_store.create("image", "draw", response_format="url")
@@ -68,7 +120,6 @@ def main():
             settle_seconds=0,
         ))
         assert file_pool.cookie_count() == 2
-        assert file_pool.list_accounts()[0]["cookie_count"] == 2
     print("PASS state helpers")
 
 

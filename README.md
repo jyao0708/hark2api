@@ -46,9 +46,9 @@ hark2api 是一个轻量的本地 API 网关。它直接调用 Hark 的会话、
 
 ### 额度与任务进度
 
-Hark 当前没有已确认可直接调用的通用额度接口。hark2api 会在图片生成成功后，使用同一个账号单独发起一次普通对话，要求 Hark 严格返回每日和月度额度 JSON，再做格式校验并写入账号记录。图片结果不会等待这次查询，账号页会显示“查询中”、结果或失败状态，也可以手动刷新额度。
+hark2api 直接读取 Hark 的 `/api/billing/summary`，从服务端返回的 meter 计算每日和月度剩余比例，并显示真实重置时间，不再通过普通对话询问额度。额度读取失败不会阻塞已经通过 `/api/profile` 验证的账号，账号页可以稍后手动刷新。
 
-额度 JSON 只能证明 Hark 返回了符合格式的数据，不能证明模型返回的百分比和重置时间绝对真实。额度查询本身是一条普通 Hark 对话，可能消耗普通对话额度。查询失败不会影响已经生成的图片。
+添加账号时会先读取 `/api/profile`。只有能够获取个人资料和邮箱的会话才会添加；额度接口失败时仍会保留账号，并标记额度稍后重试。账号列表显示邮箱、认证状态、日月额度以及各自的重置进度。
 
 Hark 历史消息目前只提供 `isStreaming`、`jobStatus` 等状态，没有可验证的数值百分比。因此任务页和工作台展示排队、等待响应、生成中、整理结果等阶段，只有完成时显示 `100%`，不会伪造中间百分比。
 
@@ -68,7 +68,7 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-将浏览器开发者工具复制出的完整 `Cookie` 请求头写入 `.env` 的 `HARK2API_COOKIE`，或者使用 `HARK2API_COOKIE_FILE` 指向一个只允许当前用户读取的文件。推荐使用文件方式，避免 Cookie 出现在 shell 历史中。
+将浏览器开发者工具复制出的完整 `Cookie` 请求头，或单独的 `__Secure-hark.session_token` 值写入 `.env` 的 `HARK2API_COOKIE`，或者使用 `HARK2API_COOKIE_FILE` 指向一个只允许当前用户读取的文件。推荐使用文件方式，避免凭据出现在 shell 历史中。
 
 ```bash
 python -m uvicorn app:app --host 0.0.0.0 --port 18611
@@ -98,8 +98,8 @@ Compose 会把 `./data` 挂载到容器内的 `/app/data`，用于保存账号�
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
 | `HARK2API_KEY` | 空 | API 鉴权 Key。为空时不启用鉴权 |
-| `HARK2API_COOKIE` | 空 | 完整浏览器 Cookie Header |
-| `HARK2API_COOKIE_FILE` | 空 | Cookie 文件路径，优先于环境变量中的长字符串 |
+| `HARK2API_COOKIE` | 空 | 完整浏览器 Cookie Header 或单独的 session token |
+| `HARK2API_COOKIE_FILE` | 空 | Cookie 或 session token 文件路径，优先于环境变量中的长字符串 |
 | `HARK2API_UPSTREAM` | `https://hark.com` | Hark 上游地址 |
 | `HARK2API_HOST` | `0.0.0.0` | 监听地址 |
 | `HARK2API_PORT` | `18611` | 监听端口 |
@@ -174,11 +174,11 @@ curl http://127.0.0.1:18611/v1/images/tasks/task_xxx \
 
 控制台位于 `/` 和 `/admin`，包含：
 
-- 总览：查看 Hark 上游、Cookie、API Key、账号和媒体概况
-- 账号：添加、测试、启用、禁用、改标签和删除账号
+- 总览：查看 Hark 上游、账号、API Key 和媒体概况
+- 账号：添加、验证、启用、禁用、改标签和删除账号；支持完整 Cookie 或单独的 session token
 - 任务：查看异步图片任务、删除已结束任务、清理记录
 - 媒体：预览、打开和清理本地生成文件
-- 工作台：同一个入口提交文生图，或附加一张参考图进行图片编辑
+- 工作台：在提示词编辑器内添加参考图、拖拽上传、提取图片风格，或提交文生图和图片编辑
 - 设置：配置当前浏览器会话中的 API Key，查看 GitHub 和 QQ 群入口
 
 ## 数据与安全

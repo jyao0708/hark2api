@@ -3,16 +3,17 @@ from __future__ import annotations
 
 import mimetypes
 import os
-import json
 import re
 import threading
 import time
 import uuid
+import calendar
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urljoin
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import requests
 
@@ -37,22 +38,13 @@ class HarkUsageError(HarkError):
     pass
 
 
-USAGE_PROMPT = (
-    "查额度。只输出一个 JSON 对象，第一个字符必须是 {，最后一个字符必须是 }。"
-    "禁止任何解释、寒暄、markdown、代码块或换行。"
-    "格式（严格照抄键名和顺序）："
-    "{\"d\":{\"left\":\"98%\",\"reset\":\"2026-10-16 11:07\"},"
-    "\"m\":{\"left\":\"100%\",\"reset\":\"2026-11-01 08:00\"}}"
-    "规则：d = 每日额度，m = 月度额度，left = 100 减去已用百分比，整数加 %，"
-    "reset 用 Asia/Shanghai 时间，格式 YYYY-MM-DD HH:mm。"
-    "取不到数据时只输出 {\"error\":\"原因\"}。"
-)
-
-
 def parse_cookie_header(text: str | None) -> dict[str, str]:
-    """Parse a browser Cookie header without retaining cookie attributes."""
+    """Parse a browser Cookie header or a raw Hark session token."""
     out: dict[str, str] = {}
-    for item in (text or "").split(";"):
+    raw = (text or "").strip()
+    if raw and ";" not in raw and "=" not in raw:
+        return {"__Secure-hark.session_token": raw}
+    for item in raw.split(";"):
         item = item.strip()
         if not item or "=" not in item:
             continue
@@ -63,36 +55,89 @@ def parse_cookie_header(text: str | None) -> dict[str, str]:
     return out
 
 
-def parse_usage_response(text: str) -> dict[str, dict[str, str]]:
-    raw = str(text or "")
-    if not raw.startswith("{") or not raw.endswith("}") or "\n" in raw or "\r" in raw:
-        raise HarkUsageError("额度响应不是严格 JSON 对象")
+def parse_billing_summary(
+    payload: dict[str, Any],
+    timezone_name: str = "Asia/Shanghai",
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Normalize Hark's billing meters into account-friendly quota data."""
     try:
-        value = json.loads(raw)
-    except (TypeError, ValueError):
-        raise HarkUsageError("额度响应 JSON 解析失败") from None
-    if not isinstance(value, dict):
-        raise HarkUsageError("额度响应不是 JSON 对象")
-    if "error" in value:
-        raise HarkUsageError(f"Hark 未返回额度：{str(value.get('error') or '未知原因')[:160]}")
+        zone = ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError:
+        raise HarkUsageError(f"未知时区：{timezone_name}") from None
 
-    def window(name: str, label: str) -> dict[str, str]:
-        item = value.get(name)
-        if not isinstance(item, dict):
-            raise HarkUsageError(f"额度响应缺少 {label} 数据")
-        left = item.get("left")
-        reset = item.get("reset")
-        if not isinstance(left, str) or not re.fullmatch(r"(?:0|[1-9]\d?|100)%", left):
-            raise HarkUsageError(f"{label}剩余额度格式无效")
-        if not isinstance(reset, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}", reset):
-            raise HarkUsageError(f"{label}重置时间格式无效")
+    meters = ((payload.get("meters") or {}).get("harkTokens") or {})
+    plan = ((payload.get("plan") or {}).get("name") or "").strip()
+    if not isinstance(meters, dict):
+        raise HarkUsageError("额度响应缺少 harkTokens 数据")
+
+    current = now or datetime.now(timezone.utc)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    current = current.astimezone(zone)
+
+    def number(name: str) -> int:
+        value = meters.get(name)
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise HarkUsageError(f"额度字段 {name} 格式无效")
+        if value < 0 or int(value) != value:
+            raise HarkUsageError(f"额度字段 {name} 格式无效")
+        return int(value)
+
+    def reset_time(name: str, label: str) -> datetime:
+        value = meters.get(name)
+        if not isinstance(value, str):
+            raise HarkUsageError(f"{label}重置时间缺失")
         try:
-            datetime.strptime(reset, "%Y-%m-%d %H:%M")
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
         except ValueError:
             raise HarkUsageError(f"{label}重置时间格式无效") from None
-        return {"left": left, "reset": reset}
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(zone)
 
-    return {"daily": window("d", "每日"), "monthly": window("m", "月度")}
+    def previous_month(value: datetime) -> datetime:
+        year, month = value.year, value.month - 1
+        if month == 0:
+            year, month = year - 1, 12
+        day = min(value.day, calendar.monthrange(year, month)[1])
+        return value.replace(year=year, month=month, day=day)
+
+    def meter(
+        limit_name: str,
+        used_name: str,
+        reset_name: str,
+        label: str,
+        monthly: bool = False,
+    ) -> dict[str, Any]:
+        limit = number(limit_name)
+        used = number(used_name)
+        if limit <= 0 or used > limit:
+            raise HarkUsageError(f"{label}额度数值无效")
+        reset_at = reset_time(reset_name, label)
+        period_start = previous_month(reset_at) if monthly else reset_at - timedelta(days=1)
+        duration = max(1, int((reset_at - period_start).total_seconds()))
+        remaining_seconds = max(0, int((reset_at - current).total_seconds()))
+        remaining = limit - used
+        left_percent = max(0, min(100, round(remaining / limit * 100)))
+        reset_left_percent = max(0, min(100, round(remaining_seconds / duration * 100)))
+        return {
+            "left": f"{left_percent}%",
+            "used": used,
+            "limit": limit,
+            "remaining": remaining,
+            "reset": reset_at.strftime("%Y-%m-%d %H:%M"),
+            "reset_at": reset_at.isoformat(),
+            "reset_duration_seconds": duration,
+            "reset_left_percent": reset_left_percent,
+        }
+
+    return {
+        "plan": plan or "未知套餐",
+        "daily": meter("dailyLimit", "dailyUsed", "dailyResetsAt", "每日"),
+        "monthly": meter("poolLimit", "poolUsed", "poolResetsAt", "月度", monthly=True),
+        "source": "billing_summary",
+    }
 
 
 def history_messages(payload: dict[str, Any]) -> list[dict[str, Any]]:
@@ -262,6 +307,17 @@ class HarkClient:
             raise HarkAuthError("Hark session did not contain a user")
         return str(user_id)
 
+    def get_profile(self) -> dict[str, str]:
+        data = self._request_json("GET", "/profile")
+        email = str(data.get("email") or "").strip()
+        if not email:
+            raise HarkAuthError("Hark profile did not contain an email")
+        return {
+            "email": email,
+            "name": str(data.get("name") or "").strip(),
+            "nickname": str(data.get("nickname") or "").strip(),
+        }
+
     def create_conversation(self) -> str:
         data = self._request_json("POST", "/conversations", json={
             "title": "未命名项目",
@@ -361,9 +417,13 @@ class HarkClient:
             "GET", "/messages/history", params={"conversationId": conversation_id, "v": "2"}
         )
 
-    def query_usage(self, timeout: int | None = None) -> dict[str, dict[str, str]]:
-        result = self.run(USAGE_PROMPT, timeout=timeout)
-        return parse_usage_response(result.text)
+    def query_usage(self, timeout: int | None = None) -> dict[str, Any]:
+        summary = self._request_json(
+            "GET",
+            "/billing/summary",
+            timeout=timeout or self.cfg.request_timeout,
+        )
+        return parse_billing_summary(summary, timezone_name=self.cfg.timezone)
 
     def _download_attachment(self, conversation_id: str, attachment: dict[str, Any]) -> dict[str, Any]:
         download_url = attachment.get("downloadUrl")

@@ -158,6 +158,22 @@ class MediaCleanupRequest(BaseModel):
     dry_run: bool = False
 
 
+STYLE_EXTRACTION_PROMPT = """
+你是资深视觉设计师和图像生成提示词工程师。请分析用户上传的参考图，只提取可复用的视觉风格，不要描述具体主体、人物身份、物体名称、文字内容、品牌或故事情节。
+
+请输出一段可以直接放在图像生成提示词开头的中文风格提示词，严格包含以下 7 行，每行一个维度，不要添加开场白、结尾解释、Markdown 代码块或编号：
+视觉方向：艺术媒介、设计流派、整体气质与时代感
+色彩系统：主色、辅助色、明度、饱和度、冷暖关系与调色倾向
+光线氛围：光源方向、光质、对比度、阴影层次与空气感
+材质质感：表面材质、纹理颗粒、笔触或渲染质感、细节锐度
+构图镜头：构图秩序、留白、视角、焦段感、景别与视觉重心
+空间层次：前中后景关系、景深、透视、尺度感与背景处理
+后期控制：色彩分级、胶片或数字质感、清晰度、噪点、边缘与整体完成度
+
+每一行写成紧凑但专业的短语组合，总长度控制在 500 个汉字以内。只保留图片中确实能观察到的风格特征，不臆造不存在的风格；如果图像混合多种风格，请提炼它们的共同视觉语言。输出内容要能自然衔接用户后续输入的主体和场景描述。
+""".strip()
+
+
 def _content_text(content: Any) -> str:
     if isinstance(content, str):
         return content
@@ -770,6 +786,34 @@ def admin_add_account(req: AccountCreateRequest, _=Depends(auth)):
         return client.add_account(req.label, req.cookie_header)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from None
+    except HarkAuthError as exc:
+        raise HTTPException(422, str(exc)) from None
+    except HarkError as exc:
+        raise HTTPException(502, f"无法验证 Hark 账号：{exc}") from None
+
+
+@app.post("/admin/style-prompt")
+def admin_style_prompt(
+    image: UploadFile = File(...),
+    _=Depends(auth),
+):
+    filename = Path(image.filename or "reference.png").name or "reference.png"
+    media_type = (image.content_type or mimetypes.guess_type(filename)[0] or "").split(";", 1)[0].lower()
+    if not media_type.startswith("image/"):
+        raise HTTPException(422, "image must be an image file")
+    content = image.file.read(CFG.max_media_bytes + 1)
+    if len(content) > CFG.max_media_bytes:
+        raise HTTPException(413, "image exceeds the configured size limit")
+    result = client.run(
+        STYLE_EXTRACTION_PROMPT,
+        timeout=min(int(getattr(CFG, "chat_timeout", 300)), 300),
+        input_attachment=(filename, media_type, content),
+    )
+    prompt = result.text.strip()
+    if not prompt:
+        raise HarkGenerationError("Hark did not return a style prompt")
+    _schedule_usage_refresh(result)
+    return {"prompt": prompt}
 
 
 @app.patch("/admin/accounts/{account_id}")
@@ -778,6 +822,10 @@ def admin_update_account(account_id: str, req: AccountPatchRequest, _=Depends(au
         account = client.update_account(account_id, **req.model_dump(exclude_unset=True))
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from None
+    except HarkAuthError as exc:
+        raise HTTPException(422, str(exc)) from None
+    except HarkError as exc:
+        raise HTTPException(502, f"无法验证 Hark Cookie：{exc}") from None
     if account is None:
         raise HTTPException(404, "account not found")
     return account
@@ -886,7 +934,6 @@ def admin_status(_=Depends(auth)):
     return {
         "service": "hark2api",
         "upstream": CFG.upstream,
-        "cookie_count": cookie_count,
         "cookie_configured": cookie_count > 0,
         "api_key_enabled": bool(CFG.api_key),
         "accounts": client.stats(),
