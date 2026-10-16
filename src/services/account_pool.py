@@ -10,7 +10,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, Callable
 
-from hark import HarkAuthError, HarkClient, HarkError, HarkResult
+from .hark import HarkAuthError, HarkClient, HarkError, HarkResult
 
 
 def _cookie_header(account: dict[str, Any]) -> str:

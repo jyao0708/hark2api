@@ -18,10 +18,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field, model_validator
 
-from config import CFG
-from account_pool import HarkAccountPool
-from hark import HarkAuthError, HarkError, HarkGenerationError, HarkNetworkError
-from task_store import TaskStore
+from config import CFG, PROJECT_DIR
+from services.account_pool import HarkAccountPool
+from services.hark import HarkAuthError, HarkError, HarkGenerationError, HarkNetworkError
+from storage.task_store import TaskStore
 
 
 CFG.ensure_dirs()
@@ -433,7 +433,6 @@ def _response_envelope(response_id: str, message_id: str, model: str, status: st
         "output_text": text,
     }
 
-
 def _stream_completion(prompt: str, model: str, timeout: int | None, base_url: str):
     completion_id = "chatcmpl-" + uuid.uuid4().hex
     created = int(time.time())
@@ -539,7 +538,7 @@ def _stream_response(prompt: str, model: str, timeout: int | None, base_url: str
 
 def _admin_html() -> str:
     try:
-        return Path(__file__).with_name("admin.html").read_text(encoding="utf-8")
+        return (PROJECT_DIR / "web" / "admin.html").read_text(encoding="utf-8")
     except OSError:
         return "<!doctype html><title>hark2api</title><p>admin.html is missing.</p>"
 
@@ -559,9 +558,9 @@ def favicon():
     return Response(content=b"", media_type="image/x-icon")
 
 
-@app.get("/docs/QQ群.png")
+@app.get("/docs/images/qq-group.png")
 def community_qr():
-    path = Path(__file__).with_name("docs") / "QQ群.png"
+    path = PROJECT_DIR / "docs" / "images" / "qq-group.png"
     if not path.is_file():
         raise HTTPException(404, "community QR code not found")
     return FileResponse(path, media_type="image/png")
@@ -951,9 +950,3 @@ def admin_status(_=Depends(auth)):
         "accounts": client.stats(),
         "media": {"count": len(media), "bytes": sum(path.stat().st_size for path in media)},
     }
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run("app:app", host=CFG.host, port=CFG.port)

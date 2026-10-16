@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_DIR = Path(__file__).resolve().parents[1]
+BASE_DIR = str(PROJECT_DIR)
 
 
 def _load_dotenv() -> None:
