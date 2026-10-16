@@ -1885,12 +1885,6 @@
     .quota-muted { color: var(--faint); font-size: 12px; }
     .quota-error { color: var(--bad); font-size: 12px; }
     .row-actions { align-items: flex-start; }
-    .row-more { min-width: 76px; }
-    .row-more > summary { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; list-style: none; }
-    .row-more > summary::-webkit-details-marker { display: none; }
-    .more-menu { display: grid; gap: 5px; min-width: 140px; margin-top: 6px; padding: 6px; border: 1px solid var(--line-strong); background: var(--surface-strong); box-shadow: 4px 4px 0 var(--accent-soft); }
-    .more-menu .button { width: 100%; justify-content: flex-start; text-align: left; }
-
     @media (max-width: 900px) {
       .workbench-layout { grid-template-columns: 1fr; }
       .workbench-form, .workbench-preview { min-height: 0; }
@@ -1923,6 +1917,293 @@
     }
     @media (prefers-reduced-motion: reduce) {
       .progress-indicator::after { animation: none; transform: translateX(0); }
+    }
+  </style>
+  <style id="console-final-system">
+    /* Final console pass: one surface language, one accent, no decorative noise. */
+    :root {
+      color-scheme: light;
+      --bg: #f3f5f4;
+      --surface: #ffffff;
+      --surface-strong: #ffffff;
+      --surface-muted: #eef2f0;
+      --surface-tint: #f8faf9;
+      --ink: #1b272b;
+      --ink-strong: #101a1e;
+      --muted: #65747b;
+      --faint: #8c999e;
+      --line: #d9e1de;
+      --line-strong: #b9c6c2;
+      --chrome: #182328;
+      --chrome-soft: #27353a;
+      --accent: #e26747;
+      --accent-dark: #b54c32;
+      --accent-soft: #fff0eb;
+      --good: #287b5b;
+      --good-bg: #e6f3ed;
+      --warn: #996a20;
+      --warn-bg: #fff4dd;
+      --bad: #b84b4b;
+      --bad-bg: #ffeded;
+      --blue: #367b9b;
+      --signal-blue: #eef2f0;
+      --signal-lime: #eef3ef;
+      --signal-lilac: #eef2f1;
+      --shadow: 0 1px 2px rgba(17, 31, 35, .05);
+      --radius: 9px;
+    }
+
+    html, body { background: var(--bg); }
+    body {
+      color: var(--ink);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      letter-spacing: 0;
+    }
+    body::before, .state-panel::after, .quick-panel::after { display: none !important; }
+    :focus-visible { outline: 2px solid rgba(226, 103, 71, .42); outline-offset: 2px; }
+
+    .topbar {
+      min-height: 64px;
+      padding: 0 clamp(18px, 4vw, 56px);
+      color: #eef3f1;
+      background: var(--chrome);
+      border: 0;
+      border-bottom: 1px solid #314047;
+      box-shadow: none;
+      backdrop-filter: none;
+    }
+    .brand { min-width: 0; color: #f4f8f6; font-size: 16px; letter-spacing: .02em; }
+    .brand span { color: #f08a6b; }
+    .brand small, .top-state, .auth-box { display: none; }
+    .top-links { display: flex; align-items: center; gap: 18px; margin-left: auto; }
+    .top-link {
+      border: 0;
+      border-bottom: 1px solid transparent;
+      padding: 5px 0;
+      color: #b7c4c5;
+      background: transparent;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .top-link:hover { border-bottom-color: #f08a6b; color: #ffffff; }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 176px minmax(0, 1fr);
+      grid-template-rows: auto 1fr;
+      column-gap: 32px;
+      width: min(1440px, calc(100% - 48px));
+      padding: 32px 0 64px;
+    }
+    .tabs { grid-column: 1; grid-row: 1 / span 2; position: sticky; top: 88px; display: grid; align-content: start; gap: 2px; margin: 0; padding: 4px 0; border: 0; background: transparent; box-shadow: none; }
+    .tabs::before, .tabs::after { display: none !important; }
+    .tab {
+      position: relative;
+      width: 100%;
+      min-height: 40px;
+      border: 0;
+      border-left: 3px solid transparent;
+      border-radius: 0 6px 6px 0;
+      padding: 9px 13px;
+      color: var(--muted);
+      background: transparent;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: left;
+      transition: background .16s ease, border-color .16s ease, color .16s ease;
+    }
+    .tab::after { display: none !important; }
+    .tab:hover { color: var(--ink-strong); background: var(--surface); }
+    .tab.active { border-left-color: var(--accent); color: var(--accent-dark); background: var(--accent-soft); }
+    .page-heading, .notice, .view { grid-column: 2; }
+    .notice { grid-row: 1; margin-bottom: 14px; }
+    .view { grid-row: 2; }
+    .view > .section-head { min-height: 34px; align-items: center; justify-content: flex-end; margin-bottom: 16px; padding: 0; border: 0; }
+    .section-actions { gap: 7px; }
+
+    .panel { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+    .button {
+      min-height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      padding: 6px 11px;
+      color: var(--ink);
+      background: var(--surface);
+      font-weight: 700;
+      transition: border-color .16s ease, background .16s ease, color .16s ease, transform .16s ease;
+    }
+    .button:hover { border-color: var(--accent); color: var(--accent-dark); background: var(--accent-soft); }
+    .button:active { transform: scale(.98); }
+    .button.primary { border-color: var(--accent); color: #ffffff; background: var(--accent); box-shadow: none; }
+    .button.primary:hover { border-color: var(--accent-dark); color: #ffffff; background: var(--accent-dark); }
+    .button.ghost { border-color: transparent; background: transparent; }
+    .button.danger { color: var(--bad); }
+    .button.small { min-height: 31px; padding: 5px 9px; font-size: 12px; }
+    .button.block { width: 100%; }
+
+    .notice { border: 1px solid var(--line); border-left: 3px solid var(--blue); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+    .notice.error { border-left-color: var(--bad); background: var(--bad-bg); }
+    .notice.success { border-left-color: var(--good); background: var(--good-bg); }
+
+    .overview-grid, .two-col { grid-template-columns: minmax(0, 1.45fr) minmax(280px, .75fr); gap: 16px; }
+    .state-panel, .quick-panel { min-height: 0; padding: 22px; box-shadow: var(--shadow); }
+    .state-panel { border-top: 3px solid var(--good); }
+    .quick-panel { color: #edf3f1; background: var(--chrome); border-color: var(--chrome); border-top: 3px solid var(--accent); }
+    .state-title { gap: 9px; }
+    .state-title h2, .quick-panel h2 { font-size: 19px; letter-spacing: -.01em; }
+    .state-table { margin-top: 22px; }
+    .state-table th, .state-table td { padding: 10px 8px; background: transparent; }
+    .state-table th { color: var(--muted); }
+    .state-table td { color: var(--ink-strong); }
+    .quick-panel h2 { color: #ffffff; margin-bottom: 16px; }
+    .quick-panel p, .quick-panel .eyebrow { color: #aebdc1; }
+    .quick-panel .button { margin-top: 8px; border-color: #506168; color: #edf3f1; background: transparent; }
+    .quick-panel .button:hover { border-color: #dbe7e4; color: #ffffff; background: var(--chrome-soft); }
+    .quick-panel .button.primary { border-color: var(--accent); color: #ffffff; background: var(--accent); }
+
+    .metric-strip { overflow: hidden; margin-top: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+    .metric { min-height: 96px; padding: 16px 18px; background: transparent !important; border-right: 1px solid var(--line); }
+    .metric-label { color: var(--muted); }
+    .metric strong { margin: 5px 0 2px; color: var(--ink-strong); font-size: 28px; letter-spacing: -.03em; }
+    .metric small { color: var(--faint); }
+    .overview-bottom { margin-top: 16px; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+    .overview-bottom .section-head { margin: 0 0 14px; padding: 0; }
+
+    table { min-width: 720px; }
+    th, td { padding: 12px 14px; border-bottom-color: var(--line); }
+    th { color: var(--muted); background: var(--surface-muted); font-size: 11px; font-weight: 750; letter-spacing: 0; text-transform: none; }
+    td { background: var(--surface); }
+    tbody tr:hover td { background: var(--surface-tint); }
+    .badge { border-radius: 999px; padding: 3px 8px; color: var(--muted); background: var(--surface-muted); }
+    .badge.good { color: var(--good); background: var(--good-bg); }
+    .badge.warn { color: var(--warn); background: var(--warn-bg); }
+    .badge.bad { color: var(--bad); background: var(--bad-bg); }
+
+    .account-panel { overflow: visible; }
+    .account-bulkbar { background: var(--surface-tint); border-bottom-color: var(--line); }
+    #accountTable, .account-panel .table-wrap { overflow: visible; }
+    #accountTable table { min-width: 0; }
+    .row-actions { flex-wrap: nowrap; align-items: center; gap: 6px; }
+    .more-wrap { position: relative; display: inline-flex; }
+    .more-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      z-index: 40;
+      display: none;
+      min-width: 168px;
+      margin: 0;
+      padding: 5px;
+      gap: 2px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: var(--surface);
+      box-shadow: 0 12px 28px rgba(17, 31, 35, .14);
+    }
+    .more-wrap.is-open .more-menu { display: grid; }
+    .more-menu .button { width: 100%; justify-content: flex-start; border-color: transparent; text-align: left; background: transparent; }
+    .more-menu .button:hover { border-color: var(--line); background: var(--surface-muted); }
+    .more-menu .button.danger:hover { border-color: var(--bad-bg); color: var(--bad); background: var(--bad-bg); }
+
+    .meter-fill { background: var(--accent); }
+    .meter-row:nth-child(2) .meter-fill { background: var(--good); }
+    .reset-track .meter-fill { background: var(--blue); }
+
+    .workbench-layout { grid-template-columns: minmax(300px, .82fr) minmax(0, 1.18fr); gap: 16px; }
+    .workbench-form, .workbench-preview { min-height: 520px; padding: 20px; border-top: 3px solid var(--accent); box-shadow: var(--shadow); }
+    .workbench-preview { border-top-color: var(--good); }
+    .prompt-composer { border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); }
+    .prompt-composer:focus-within, .prompt-composer.is-dragging { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .prompt-composer.is-dragging { background: var(--accent-soft); }
+    .prompt-composer textarea { padding: 16px; }
+    .style-prompt-block { background: var(--accent-soft); }
+    .reference-preview-wrap, .prompt-toolbar { background: var(--surface-tint); }
+    .prompt-toolbar { padding: 9px 10px; }
+    .tool-button { border-radius: 6px; }
+    .tool-button:hover:not(:disabled) { border-color: var(--line-strong); background: var(--surface); }
+    .result-image { margin: 16px 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-muted); }
+    .workbench-empty { border: 1px dashed var(--line-strong); background: var(--surface); }
+
+    .media-library-panel { padding: 20px; }
+    .media-grid { display: block; column-count: 4; column-gap: 16px; column-width: auto; }
+    .media-item { display: inline-block; width: 100%; margin: 0 0 16px; break-inside: avoid; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: none; vertical-align: top; }
+    .media-preview { aspect-ratio: auto; background: var(--surface-muted); }
+    .media-preview img { display: block; width: 100%; height: auto; object-fit: contain; }
+    .media-meta { padding: 11px 12px; }
+    .media-actions { gap: 6px; }
+
+    .settings-surface { overflow: hidden; border: 1px solid var(--line); border-top: 3px solid var(--chrome); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+    .settings-row { grid-template-columns: minmax(160px, .7fr) minmax(0, 1.3fr); gap: 28px; padding: 22px 24px; border-bottom-color: var(--line); }
+    .settings-row h2 { margin-bottom: 0; font-size: 16px; }
+    .settings-row .eyebrow { display: none; }
+    .settings-actions { margin-top: 12px; }
+    .community-control img { flex-basis: 160px; width: 160px; height: 160px; }
+
+    dialog { border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); box-shadow: 0 20px 60px rgba(17, 31, 35, .2); }
+    dialog::backdrop { background: rgba(17, 31, 35, .42); }
+
+    @media (max-width: 1099px) {
+      .shell { display: block; width: min(100% - 32px, 1440px); padding-top: 24px; }
+      .tabs { position: static; display: block; margin: 0 0 18px; padding: 5px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+      .tabs .tab { display: none; }
+      .mobile-view-select { display: block; width: 100%; min-height: 40px; border: 0; background: transparent; font-weight: 750; }
+      .view > .section-head { margin-bottom: 14px; }
+      .media-grid { column-count: 3; }
+    }
+
+    @media (max-width: 1050px) {
+      #accountTable table { width: 100%; }
+      #accountTable thead { display: none; }
+      #accountTable tbody, #accountTable tr, #accountTable td { display: block; }
+      #accountTable tr { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+      #accountTable tr:last-child { border-bottom: 0; }
+      #accountTable td { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; align-items: start; padding: 9px 0; border: 0; }
+      #accountTable td::before { content: attr(data-label); color: var(--muted); font-size: 11px; font-weight: 800; }
+      #accountTable td:first-child { padding-top: 0; }
+      #accountTable td:last-child { padding-bottom: 0; }
+      #accountTable .account-email { max-width: none; }
+      #accountTable .updated-cell { white-space: normal; }
+      #accountTable .more-menu { min-width: 190px; }
+    }
+
+    @media (max-width: 900px) {
+      .workbench-layout, .two-col, .overview-grid { grid-template-columns: 1fr; }
+      .workbench-form, .workbench-preview { min-height: 0; }
+      .settings-row { grid-template-columns: 1fr; gap: 14px; }
+    }
+
+    @media (max-width: 700px) {
+      .topbar { min-height: 60px; padding: 0 16px; }
+      .top-links { gap: 11px; }
+      .top-link { font-size: 11px; }
+      .shell { width: calc(100% - 24px); padding: 18px 0 52px; }
+      .state-panel, .quick-panel, .workbench-form, .workbench-preview, .media-library-panel { padding: 16px; }
+      .metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric { min-height: 88px; padding: 14px; }
+      .metric strong { font-size: 25px; }
+      .overview-bottom { padding: 16px; }
+      .section-actions { justify-content: flex-start; flex-wrap: wrap; }
+      .section-actions .button { flex: 0 0 auto; }
+      .media-grid { column-count: 2; column-gap: 12px; }
+      .media-item { margin-bottom: 12px; }
+      .settings-row { padding: 18px; }
+      .community-control { align-items: flex-start; flex-direction: column; }
+      .community-control img { width: 150px; height: 150px; }
+      .account-bulk-label { flex: 1 0 100%; margin-right: 0; }
+    }
+
+    @media (max-width: 520px) {
+      .top-links { gap: 8px; }
+      .top-link:last-child { font-size: 0; }
+      .top-link:last-child::before { content: "QQ群"; font-size: 11px; }
+      .media-grid { column-count: 1; }
+      .more-menu { min-width: 180px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .button, .tab, .meter-fill { transition: none; }
     }
   </style>
 </head>
@@ -1975,9 +2256,7 @@
         </section>
 
         <section class="panel quick-panel">
-          <div class="eyebrow">快捷操作</div>
           <h2>常用操作</h2>
-          <p>直接进入需要处理的运行面板。</p>
           <button class="button primary block" type="button" data-go="run">打开工作台</button>
           <button class="button block" type="button" data-go="accounts">管理账号</button>
           <button class="button block" type="button" data-go="media">查看媒体文件</button>
@@ -1993,7 +2272,7 @@
 
       <section class="panel panel-pad overview-bottom">
         <div class="section-head">
-          <div><div class="eyebrow">近期活动</div><h2>最近任务</h2></div>
+          <div><h2>最近任务</h2></div>
           <button class="button small" type="button" data-go="tasks">查看全部</button>
         </div>
         <div id="recentTasks" class="table-wrap"><div class="empty loading">读取中</div></div>
@@ -2002,7 +2281,6 @@
 
     <section id="view-accounts" class="view">
       <div class="section-head">
-        <div><h2>账号</h2></div>
         <div class="section-actions account-section-actions">
           <input id="importAccountsFile" type="file" accept="application/json,.json" hidden>
           <button id="importAccounts" class="button small" type="button" title="逐个验证并导入账号 JSON">导入 JSON</button>
@@ -2025,7 +2303,6 @@
 
     <section id="view-tasks" class="view">
       <div class="section-head">
-        <div><h2>任务</h2></div>
         <div class="section-actions"><button id="refreshTasks" class="button small" type="button">刷新</button><button id="clearTasks" class="button danger small" type="button">清理已结束任务</button></div>
       </div>
       <section class="panel">
@@ -2035,7 +2312,6 @@
 
     <section id="view-media" class="view">
       <div class="section-head">
-        <div><h2>媒体</h2></div>
         <div class="section-actions"><button id="refreshMedia" class="button small" type="button">刷新</button></div>
       </div>
       <section class="panel media-library-panel"><div id="mediaGrid" class="media-grid"><div class="empty loading">读取中</div></div></section>
@@ -2051,7 +2327,6 @@
       </div>
       <div id="workbenchLayout" class="workbench-layout">
         <form id="generationForm" class="panel workbench-form">
-          <h2>生成图片</h2>
           <div id="promptComposer" class="prompt-composer">
             <div id="stylePromptBlock" class="style-prompt-block" hidden>
               <div class="style-prompt-head"><span>提取的风格</span><button id="clearStylePrompt" class="style-prompt-clear" type="button">移除</button></div>
@@ -2088,14 +2363,14 @@
     <section id="view-settings" class="view">
       <div class="settings-surface">
         <section class="settings-row">
-          <div><div class="eyebrow">接口鉴权</div><h2>API Key</h2><p class="help">当前浏览器会话使用的密钥。</p></div>
+          <div><h2>API Key</h2></div>
           <div class="settings-control">
             <div class="field"><label for="apiKey">当前会话 API Key</label><input id="apiKey" type="password" autocomplete="off" placeholder="未设置时留空"></div>
             <div class="settings-actions"><button id="saveKey" class="button primary" type="button">保存设置</button></div>
           </div>
         </section>
         <section class="settings-row">
-          <div><div class="eyebrow">媒体维护</div><h2>清理媒体</h2><p class="help">按文件修改时间清理旧文件。</p></div>
+          <div><h2>清理媒体</h2></div>
           <div class="settings-control">
             <form id="cleanupForm">
               <div class="cleanup-controls">
@@ -2108,7 +2383,7 @@
           </div>
         </section>
         <section id="community" class="settings-row">
-          <div><div class="eyebrow">社区交流</div><h2>交流群</h2><p class="help">反馈问题，交流使用经验。</p></div>
+          <div><h2>交流群</h2></div>
           <div class="settings-control community-control">
             <img src="/docs/QQ群.png" alt="QQ群 1124104343 二维码">
             <p class="community-id">QQ群 1124104343</p>
@@ -2120,7 +2395,7 @@
 
   <dialog id="accountDialog">
     <form id="accountForm" method="dialog" class="dialog-body">
-      <div class="dialog-head"><div><div class="eyebrow">账号管理</div><h2 id="dialogTitle">添加账号</h2></div><button id="closeAccountDialog" type="button" aria-label="关闭">×</button></div>
+      <div class="dialog-head"><div><h2 id="dialogTitle">添加账号</h2></div><button id="closeAccountDialog" type="button" aria-label="关闭">×</button></div>
       <div id="dialogLabelField" class="field"><label for="dialogLabel">标签</label><input id="dialogLabel" maxlength="80" placeholder="例如：主账号"></div>
       <div id="dialogCookieField" class="field"><label for="dialogCookie">Cookie / ST</label><textarea id="dialogCookie" required placeholder="粘贴完整 Cookie，或仅粘贴 session token"></textarea><div class="help">支持完整 Cookie，也支持只粘贴 __Secure-hark.session_token 的值。保存时会读取账号邮箱并同步额度；如果无法读取个人资料，账号不会添加。</div></div>
       <div class="dialog-actions"><button id="cancelAccountDialog" class="button" type="button">取消</button><button class="button primary" type="submit">保存</button></div>
@@ -2350,14 +2625,14 @@
           '<td data-label="重置" class="reset-cell">' + renderReset(account) + '</td>' +
           '<td data-label="更新时间" class="updated-cell">' + renderUpdatedAt(account) + '</td>' +
           '<td data-label="操作"><div class="row-actions">' +
-            '<button class="button small" data-account-action="test" data-id="' + accountId + '">测试</button>' +
             '<button class="button small" data-account-action="usage" data-id="' + accountId + '">刷新额度</button>' +
-            '<details class="row-more"><summary class="button small" aria-label="更多账号操作">更多</summary><div class="more-menu">' +
-              '<button class="button small" data-account-action="label" data-id="' + accountId + '">改标签</button>' +
-              '<button class="button small" data-account-action="cookie" data-id="' + accountId + '">更新 Cookie</button>' +
-              '<button class="button small" data-account-action="toggle" data-id="' + accountId + '">' + actionLabel + '</button>' +
-              '<button class="button danger small" data-account-action="delete" data-id="' + accountId + '">删除</button>' +
-            '</div></details>' +
+            '<div class="more-wrap"><button class="button small more-trigger" type="button" data-more-trigger aria-haspopup="menu" aria-expanded="false" aria-label="更多账号操作">更多</button><div class="more-menu" role="menu">' +
+              '<button class="button small" type="button" role="menuitem" data-account-action="test" data-id="' + accountId + '">验证账号</button>' +
+              '<button class="button small" type="button" role="menuitem" data-account-action="label" data-id="' + accountId + '">修改标签</button>' +
+              '<button class="button small" type="button" role="menuitem" data-account-action="cookie" data-id="' + accountId + '">更新 Cookie</button>' +
+              '<button class="button small" type="button" role="menuitem" data-account-action="toggle" data-id="' + accountId + '">' + actionLabel + '</button>' +
+              '<button class="button danger small" type="button" role="menuitem" data-account-action="delete" data-id="' + accountId + '">删除</button>' +
+            '</div></div>' +
           '</div></td>' +
         '</tr>';
       }).join('');
@@ -2486,8 +2761,15 @@
       } catch (error) { showNotice(error.message, 'error'); }
     }
 
-    function closeMoreMenus() {
-      $$('.row-more[open]').forEach((menu) => menu.removeAttribute('open'));
+    function closeMoreMenus(restoreFocus = false) {
+      $$('.more-wrap.is-open').forEach((wrap) => {
+        wrap.classList.remove('is-open');
+        const trigger = wrap.querySelector('[data-more-trigger]');
+        if (trigger) {
+          trigger.setAttribute('aria-expanded', 'false');
+          if (restoreFocus) trigger.focus();
+        }
+      });
     }
 
     async function bulkAccountAction(action) {
@@ -2848,9 +3130,23 @@
     $$('.tab').forEach((tab) => tab.addEventListener('click', () => switchView(tab.dataset.view)));
     $('#viewSelect').addEventListener('change', (event) => switchView(event.target.value));
     document.addEventListener('click', (event) => {
-      if (!event.target.closest('.row-more')) closeMoreMenus();
+      const trigger = event.target.closest('[data-more-trigger]');
+      if (trigger) {
+        const wrap = trigger.closest('.more-wrap');
+        const opening = !wrap.classList.contains('is-open');
+        closeMoreMenus();
+        if (opening) {
+          wrap.classList.add('is-open');
+          trigger.setAttribute('aria-expanded', 'true');
+        }
+        return;
+      }
+      if (!event.target.closest('.more-wrap')) closeMoreMenus();
       const button = event.target.closest('[data-go]');
       if (button) switchView(button.dataset.go, button.dataset.focus || '');
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeMoreMenus(true);
     });
     $('#accountTable').addEventListener('change', (event) => {
       const checkbox = event.target.closest('[data-account-select]');
